@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard IoT demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 16px; }
+    table { border-collapse: collapse; width: 600px; }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th { background: #f0f0f0; }
+    button { margin: 0 2px; }
+  </style>
+</head>
+<body>
+  <h2>Dashboard IoT demo</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tên thiết bị</th>
+        <th>Đèn (GPIO23)</th>
+        <th>Nhiệt độ (°C)</th>
+        <th>Trạng thái PIR</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody id="device-body">
+      <!-- js fill -->
+    </tbody>
+  </table>
+
+  <script>
+    // doi thanh IP backend cua ban
+    const API_BASE = "http://192.168.10.128:5000";
+
+    async function loadDevices() {
+      try {
+        const res = await fetch(`${API_BASE}/api/devices`);
+        const data = await res.json();
+
+        const tbody = document.getElementById("device-body");
+        tbody.innerHTML = "";
+
+        data.forEach(d => {
+          const tr = document.createElement("tr");
+
+          const tempText = (d.temp === null || d.temp === undefined)
+            ? "..."
+            : d.temp.toFixed ? d.temp.toFixed(1) : Number(d.temp).toFixed(1);
+
+          const pirText = d.pir === 1 ? "Có người" : "Không có";
+
+          tr.innerHTML = `
+            <td>${d.id}</td>
+            <td>${d.name}</td>
+            <td>${d.status}</td>
+            <td>${tempText}</td>
+            <td>${pirText}</td>
+            <td>
+              <button onclick="setDevice(${d.id}, 'on')">Bật</button>
+              <button onclick="setDevice(${d.id}, 'off')">Tắt</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("loadDevices error:", err);
+      }
+    }
+
+    async function setDevice(id, action) {
+      try {
+        await fetch(`${API_BASE}/api/devices/${id}/${action}`, {
+          method: "POST"
+        });
+        // sau khi gui lenh thi load lai
+        setTimeout(loadDevices, 500);
+      } catch (err) {
+        console.error("setDevice error:", err);
+      }
+    }
+
+    // load lan dau + auto refresh 2s/lần
+    loadDevices();
+    setInterval(loadDevices, 2000);
+  </script>
+</body>
+</html>
