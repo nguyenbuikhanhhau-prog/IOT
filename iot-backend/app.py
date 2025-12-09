@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 import json
 import threading
 import time
+from datetime import datetime # <--- Thêm dòng này ở đầu
 
 app = Flask(__name__)
 CORS(app)
@@ -30,6 +31,14 @@ devices = [
         "pir": 0           # 1: co nguoi, 0: khong
     }
 ]
+
+# Kho lưu trữ lịch sử (Dạng: { device_id: [danh_sach_log] })
+history_logs = {}
+
+# --- API LẤY LỊCH SỬ CỦA 1 THIẾT BỊ ---
+@app.route('/api/devices/<int:device_id>/history', methods=['GET'])
+def get_device_history(device_id):
+    return jsonify(history_logs.get(device_id, []))
 
 # Khởi tạo MQTT client đúng chuẩn HiveMQ Cloud
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -121,17 +130,42 @@ def set_device(device_id, action):
     mqtt_client.publish(topic, payload, qos=1)
     print("Publish control:", topic, payload)
 
+# === THÊM ĐOẠN NÀY ĐỂ GHI LOG ===
+if device_id not in history_logs:
+    history_logs[device_id] = []
+
+# Lấy giờ hiện tại
+now = datetime.now().strftime("%H:%M:%S - %d/%m/%Y")
+
+# Tạo bản ghi log
+log_entry = {
+    "action": new_status,      # ON hoặc OFF
+    "user": "Admin",           # Tạm thời để mặc định là Admin
+    "time": now,
+    "timestamp": time.time()   # Để tính toán thời gian
+}
+# Thêm vào đầu danh sách (mới nhất lên trên)
+history_logs[device_id].insert(0, log_entry)
+
+# Chỉ giữ lại 20 dòng lịch sử gần nhất cho nhẹ
+if len(history_logs[device_id]) > 20:
+    history_logs[device_id].pop()
+# ================================
+
+return jsonify({
+    "ok": True,
+    "status": new_status,
+    "topic": topic,
+    "payload": payload
+})
+    
     return jsonify({
         "ok": True,
         "status": new_status,
         "topic": topic,
         "payload": payload
     })
-
-
-print("Đang khởi động MQTT Thread...")
-t = threading.Thread(target=mqtt_loop, daemon=True)
-t.start()
+    
 # --- API THÊM THIẾT BỊ MỚI (POST) ---
 @app.route('/api/devices', methods=['POST'])
 def add_device():
@@ -161,6 +195,11 @@ def delete_device(device_id):
     # Giữ lại những thiết bị KHÔNG trùng ID (nghĩa là xóa thiết bị trùng ID)
     devices = [d for d in devices if d['id'] != device_id]
     return jsonify({"success": True, "message": "Đã xóa thiết bị"})
+    
+
+print("Đang khởi động MQTT Thread...")
+t = threading.Thread(target=mqtt_loop, daemon=True)
+t.start()
 # ================== PHẦN MAIN (ĐỂ LẠI CHO LOCAL) ==================
 if __name__ == "__main__":
     import os
@@ -168,6 +207,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask backend on 0.0.0.0:{port} ...")
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
