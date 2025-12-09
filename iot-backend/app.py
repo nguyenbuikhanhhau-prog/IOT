@@ -128,14 +128,12 @@ def set_device(device_id, action):
         "payload": payload
     })
 
-
-if __name__ == "__main__":
-    # chay MQTT o thread rieng
+def start_mqtt_thread():
     t = threading.Thread(target=mqtt_loop, daemon=True)
     t.start()
 
-    print("Starting Flask backend on 0.0.0.0:5000 ...")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+# Gọi hàm khi module được load bởi gunicorn
+start_mqtt_thread()
 
 
 
