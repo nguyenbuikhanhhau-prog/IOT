@@ -8,6 +8,10 @@ import time
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/')
+def home():
+    return "Server IoT đang hoạt động!"
+    
 # ===== MQTT CONFIG =====
 # NHỚ copy đúng host từ HiveMQ (Cluster URL)
 MQTT_HOST = "9193406657be42b498e012fd208f4cf2.s1.eu.hivemq.cloud"  # sửa lại cho trùng với ESP
@@ -131,3 +135,4 @@ if __name__ == "__main__":
 
     print("Starting Flask backend on 0.0.0.0:5000 ...")
     app.run(host="0.0.0.0", port=5000, debug=True)
+
