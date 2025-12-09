@@ -132,7 +132,35 @@ def set_device(device_id, action):
 print("Đang khởi động MQTT Thread...")
 t = threading.Thread(target=mqtt_loop, daemon=True)
 t.start()
+# --- API THÊM THIẾT BỊ MỚI (POST) ---
+@app.route('/api/devices', methods=['POST'])
+def add_device():
+    try:
+        data = request.json
+        # Tự động tạo ID mới = ID lớn nhất hiện tại + 1
+        new_id = 1
+        if len(devices) > 0:
+            new_id = max(d['id'] for d in devices) + 1
+            
+        new_device = {
+            "id": new_id,
+            "name": data.get("name", f"Thiết bị {new_id}"),
+            "status": "OFF",
+            "temp": None,
+            "pir": 0
+        }
+        devices.append(new_device)
+        return jsonify(new_device)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
+# --- API XÓA THIẾT BỊ (DELETE) ---
+@app.route('/api/devices/<int:device_id>', methods=['DELETE'])
+def delete_device(device_id):
+    global devices
+    # Giữ lại những thiết bị KHÔNG trùng ID (nghĩa là xóa thiết bị trùng ID)
+    devices = [d for d in devices if d['id'] != device_id]
+    return jsonify({"success": True, "message": "Đã xóa thiết bị"})
 # ================== PHẦN MAIN (ĐỂ LẠI CHO LOCAL) ==================
 if __name__ == "__main__":
     import os
@@ -140,6 +168,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask backend on 0.0.0.0:{port} ...")
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
