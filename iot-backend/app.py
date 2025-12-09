@@ -128,18 +128,19 @@ def set_device(device_id, action):
         "payload": payload
     })
 
+
+print("Đang khởi động MQTT Thread...")
+t = threading.Thread(target=mqtt_loop, daemon=True)
+t.start()
+
+# ================== PHẦN MAIN (ĐỂ LẠI CHO LOCAL) ==================
 if __name__ == "__main__":
     import os
-
-    # lấy PORT do Railway cấp, nếu chạy local thì dùng 5000
+    # Phần này chỉ chạy khi bạn test trên máy tính cá nhân
     port = int(os.environ.get("PORT", 5000))
-
-    # chạy MQTT thread
-    t = threading.Thread(target=mqtt_loop, daemon=True)
-    t.start()
-
     print(f"Starting Flask backend on 0.0.0.0:{port} ...")
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
