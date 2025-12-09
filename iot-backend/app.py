@@ -128,12 +128,20 @@ def set_device(device_id, action):
         "payload": payload
     })
 
-def start_mqtt_thread():
+if __name__ == "__main__":
+    import os
+
+    # lấy PORT do Railway cấp, nếu chạy local thì dùng 5000
+    port = int(os.environ.get("PORT", 5000))
+
+    # chạy MQTT thread
     t = threading.Thread(target=mqtt_loop, daemon=True)
     t.start()
 
-# Gọi hàm khi module được load bởi gunicorn
-start_mqtt_thread()
+    print(f"Starting Flask backend on 0.0.0.0:{port} ...")
+    app.run(host="0.0.0.0", port=port, debug=False)
+
+
 
 
 
