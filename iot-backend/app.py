@@ -4,7 +4,7 @@ import paho.mqtt.client as mqtt
 import json
 import threading
 import time
-from datetime import datetime # <--- Thêm dòng này ở đầu
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -12,108 +12,97 @@ CORS(app)
 @app.route('/')
 def home():
     return "Server IoT đang hoạt động!"
-    
-# ===== MQTT CONFIG =====
-# NHỚ copy đúng host từ HiveMQ (Cluster URL)
-MQTT_HOST = "9193406657be42b498e012fd208f4cf2.s1.eu.hivemq.cloud"  # sửa lại cho trùng với ESP
+
+# ================= MQTT CONFIG =================
+MQTT_HOST = "9193406657be42b498e012fd208f4cf2.s1.eu.hivemq.cloud"
 MQTT_PORT = 8883
 MQTT_USER = "kahua269"
-MQTT_PASS = "Haumeo2609"   # trùng với ESP
+MQTT_PASS = "Haumeo2609"
 MQTT_TOPIC_PREFIX = "iot/devices"
 
-# ===== DU LIEU THIET BI (luu trong RAM) =====
+# ================= DEVICE STORAGE =================
 devices = [
     {
         "id": 1,
         "name": "ESP32 phong khach",
-        "status": "OFF",   # den dieu khien chan 23
-        "temp": None,      # nhiet do tu LM35
-        "pir": 0           # 1: co nguoi, 0: khong
+        "status": "OFF",
+        "temp": None,
+        "pir": 0
     }
 ]
 
-# Kho lưu trữ lịch sử (Dạng: { device_id: [danh_sach_log] })
+# Lưu history dạng { id: [logs] }
 history_logs = {}
 
-# --- API LẤY LỊCH SỬ CỦA 1 THIẾT BỊ ---
-@app.route('/api/devices/<int:device_id>/history', methods=['GET'])
-def get_device_history(device_id):
+# ================== API LỊCH SỬ ==================
+@app.route('/api/devices/<int:device_id>/history')
+def get_history(device_id):
     return jsonify(history_logs.get(device_id, []))
 
-# Khởi tạo MQTT client đúng chuẩn HiveMQ Cloud
+# ================= MQTT CLIENT ===================
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-  # nếu nó warning CallbackAPI thì sau sửa thành mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
-# ================== MQTT CALLBACKS ==================
 def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
-    print("MQTT connected, code:", reason_code)
+    print("MQTT connected:", reason_code)
     topic = f"{MQTT_TOPIC_PREFIX}/+/state"
     client.subscribe(topic)
     print("Subscribed:", topic)
 
-
 def on_mqtt_message(client, userdata, msg):
-    print("MQTT message:", msg.topic, msg.payload)
+    print("MQTT:", msg.topic, msg.payload)
+
     try:
         data = json.loads(msg.payload.decode())
-    except Exception as e:
-        print("JSON error:", e)
+    except:
         return
 
-    # topic: iot/devices/<id>/state
     parts = msg.topic.split("/")
-    dev_id = None
-    if len(parts) >= 3:
-        try:
-            dev_id = int(parts[2])
-        except ValueError:
-            pass
-
-    if dev_id is None:
+    if len(parts) < 3: 
+        return
+    
+    try:
+        dev_id = int(parts[2])
+    except:
         return
 
     for d in devices:
         if d["id"] == dev_id:
-            if "temp" in data:
-                d["temp"] = data["temp"]
-            if "pir" in data:
-                d["pir"] = data["pir"]
-            if "ctrl" in data and data["ctrl"] in ("ON", "OFF"):
+            d["temp"] = data.get("temp", d["temp"])
+            d["pir"] = data.get("pir", d["pir"])
+            if "ctrl" in data:
                 d["status"] = data["ctrl"]
             break
 
 
 def mqtt_loop():
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
-    mqtt_client.tls_set()  # dùng CA mặc định (ok với HiveMQ Cloud)
+    mqtt_client.tls_set()
     mqtt_client.on_connect = on_mqtt_connect
     mqtt_client.on_message = on_mqtt_message
 
     while True:
         try:
-            print("Connecting to MQTT broker...")
             mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
             mqtt_client.loop_forever()
         except Exception as e:
             print("MQTT error:", e)
             time.sleep(5)
 
-
-# ================== API ==================
-@app.route("/api/devices", methods=["GET"])
+# ================== API ===========================
+@app.route("/api/devices")
 def get_devices():
     return jsonify(devices)
 
-
 @app.route("/api/devices/<int:device_id>/<action>", methods=["POST"])
 def set_device(device_id, action):
+
     action = action.lower()
     if action not in ("on", "off"):
         return jsonify({"ok": False, "error": "invalid action"}), 400
 
     new_status = "ON" if action == "on" else "OFF"
 
-    # update trong list
+    # Update thiết bị
     found = False
     for d in devices:
         if d["id"] == device_id:
@@ -124,100 +113,65 @@ def set_device(device_id, action):
     if not found:
         return jsonify({"ok": False, "error": "device not found"}), 404
 
-    # gui lenh MQTT
+    # Publish MQTT
     topic = f"{MQTT_TOPIC_PREFIX}/{device_id}/set"
-    payload = new_status
-    mqtt_client.publish(topic, payload, qos=1)
-    print("Publish control:", topic, payload)
+    mqtt_client.publish(topic, new_status, qos=1)
 
-# === THÊM ĐOẠN NÀY ĐỂ GHI LOG ===
-if device_id not in history_logs:
-    history_logs[device_id] = []
+    # ============== GHI LỊCH SỬ ==============
+    if device_id not in history_logs:
+        history_logs[device_id] = []
 
-# Lấy giờ hiện tại
-now = datetime.now().strftime("%H:%M:%S - %d/%m/%Y")
+    log = {
+        "action": new_status,
+        "user": "Admin",
+        "time": datetime.now().strftime("%H:%M:%S - %d/%m/%Y"),
+        "timestamp": time.time()
+    }
 
-# Tạo bản ghi log
-log_entry = {
-    "action": new_status,      # ON hoặc OFF
-    "user": "Admin",           # Tạm thời để mặc định là Admin
-    "time": now,
-    "timestamp": time.time()   # Để tính toán thời gian
-}
-# Thêm vào đầu danh sách (mới nhất lên trên)
-history_logs[device_id].insert(0, log_entry)
+    history_logs[device_id].insert(0, log)
 
-# Chỉ giữ lại 20 dòng lịch sử gần nhất cho nhẹ
-if len(history_logs[device_id]) > 20:
-    history_logs[device_id].pop()
-# ================================
+    # giữ tối đa 20 log
+    if len(history_logs[device_id]) > 20:
+        history_logs[device_id].pop()
 
-return jsonify({
-    "ok": True,
-    "status": new_status,
-    "topic": topic,
-    "payload": payload
-})
-    
     return jsonify({
         "ok": True,
         "status": new_status,
         "topic": topic,
-        "payload": payload
+        "payload": new_status
     })
-    
-# --- API THÊM THIẾT BỊ MỚI (POST) ---
+
+
 @app.route('/api/devices', methods=['POST'])
 def add_device():
-    try:
-        data = request.json
+    data = request.json
+    new_id = max([d["id"] for d in devices]) + 1 if devices else 1
 
-        new_id = 1
-        if len(devices) > 0:
-            new_id = max(d['id'] for d in devices) + 1
+    new_device = {
+        "id": new_id,
+        "name": data.get("name", f"Thiết bị {new_id}"),
+        "status": "OFF",
+        "temp": None,
+        "pir": 0
+    }
+    devices.append(new_device)
+    return jsonify(new_device)
 
-        new_device = {
-            "id": new_id,
-            "name": data.get("name", f"Thiết bị {new_id}"),
-            "status": "OFF",
-            "temp": None,
-            "pir": 0
-        }
-
-        devices.append(new_device)
-        return jsonify(new_device)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-
-# --- API XÓA THIẾT BỊ (DELETE) ---
 @app.route('/api/devices/<int:device_id>', methods=['DELETE'])
 def delete_device(device_id):
     global devices
-    devices = [d for d in devices if d['id'] != device_id]
-    return jsonify({"success": True, "message": "Đã xóa thiết bị"})
+    devices = [d for d in devices if d["id"] != device_id]
+    history_logs.pop(device_id, None)
+    return jsonify({"success": True})
 
-print("Đang khởi động MQTT Thread...")
+
+# ============== START MQTT THREAD ==============
+print("Starting MQTT thread...")
 t = threading.Thread(target=mqtt_loop, daemon=True)
 t.start()
 
-# ================== MAIN ==================
+# ============== RENDER MAIN ====================
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 5000))
-    print(f"Starting Flask backend on 0.0.0.0:{port} ...")
     app.run(host="0.0.0.0", port=port, debug=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
