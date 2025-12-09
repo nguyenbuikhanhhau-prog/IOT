@@ -49,8 +49,6 @@ def on_mqtt_connect(client, userdata, flags, reason_code, properties=None):
     print("Subscribed:", topic)
 
 def on_mqtt_message(client, userdata, msg):
-    print("MQTT:", msg.topic, msg.payload)
-
     try:
         data = json.loads(msg.payload.decode())
     except:
@@ -117,7 +115,7 @@ def set_device(device_id, action):
     topic = f"{MQTT_TOPIC_PREFIX}/{device_id}/set"
     mqtt_client.publish(topic, new_status, qos=1)
 
-    # ============== GHI LỊCH SỬ (Đã sửa giới hạn 6 dòng) ==============
+    # ============== GHI LỊCH SỬ ==============
     if device_id not in history_logs:
         history_logs[device_id] = []
 
@@ -130,10 +128,10 @@ def set_device(device_id, action):
 
     history_logs[device_id].insert(0, log_entry)
 
-    # --- GIỚI HẠN LỊCH SỬ CÒN 6 DÒNG ---
+    # --- GIỚI HẠN CÒN 6 DÒNG ---
     if len(history_logs[device_id]) > 6:
         history_logs[device_id].pop()
-    # -----------------------------------
+    # ---------------------------
 
     return jsonify({
         "ok": True,
