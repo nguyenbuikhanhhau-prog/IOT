@@ -33,25 +33,6 @@ devices = [
 
 # Khởi tạo MQTT client đúng chuẩn HiveMQ Cloud
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-
-def mqtt_loop():
-    mqtt_client.username_pw_set(kahua269, Haumeo2609)
-
-    # TLS bắt buộc với HiveMQ Cloud
-    mqtt_client.tls_set()
-
-    mqtt_client.on_connect = on_mqtt_connect
-    mqtt_client.on_message = on_mqtt_message
-
-    while True:
-        try:
-            print("Connecting to MQTT broker...")
-            mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
-            mqtt_client.loop_forever()
-        except Exception as e:
-            print("MQTT error:", e)
-            time.sleep(5)
-
   # nếu nó warning CallbackAPI thì sau sửa thành mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
 # ================== MQTT CALLBACKS ==================
@@ -155,5 +136,6 @@ if __name__ == "__main__":
 
     print("Starting Flask backend on 0.0.0.0:5000 ...")
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
 
