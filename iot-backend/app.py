@@ -117,22 +117,23 @@ def set_device(device_id, action):
     topic = f"{MQTT_TOPIC_PREFIX}/{device_id}/set"
     mqtt_client.publish(topic, new_status, qos=1)
 
-    # ============== GHI LỊCH SỬ ==============
+    # ============== GHI LỊCH SỬ (Đã sửa giới hạn 6 dòng) ==============
     if device_id not in history_logs:
         history_logs[device_id] = []
 
-    log = {
+    log_entry = {
         "action": new_status,
         "user": "Admin",
         "time": datetime.now().strftime("%H:%M:%S - %d/%m/%Y"),
         "timestamp": time.time()
     }
 
-    history_logs[device_id].insert(0, log)
+    history_logs[device_id].insert(0, log_entry)
 
-    # giữ tối đa 20 log
-    if len(history_logs[device_id]) > 20:
+    # --- GIỚI HẠN LỊCH SỬ CÒN 6 DÒNG ---
+    if len(history_logs[device_id]) > 6:
         history_logs[device_id].pop()
+    # -----------------------------------
 
     return jsonify({
         "ok": True,
