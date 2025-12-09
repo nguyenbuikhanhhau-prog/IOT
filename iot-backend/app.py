@@ -18,7 +18,7 @@ MQTT_HOST = "9193406657be42b498e012fd208f4cf2.s1.eu.hivemq.cloud"  # sửa lại
 MQTT_PORT = 8883
 MQTT_USER = "kahua269"
 MQTT_PASS = "Haumeo2609"   # trùng với ESP
-MQTT_TOPIC_PREFIX = "iot/devices"
+MQTT_TOPIC_PREFIX = "iot/devices/1/state"
 
 # ===== DU LIEU THIET BI (luu trong RAM) =====
 devices = [
@@ -140,6 +140,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Starting Flask backend on 0.0.0.0:{port} ...")
     app.run(host="0.0.0.0", port=port, debug=False)
+
 
 
 
