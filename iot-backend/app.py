@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import paho.mqtt.client as mqtt
 import json
@@ -11,9 +11,11 @@ from datetime import datetime
 # ===== CẤU HÌNH =====
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_FOLDER = os.path.join(BASE_DIR, 'static')
+TEMPLATE_FOLDER = os.path.join(BASE_DIR, 'templates')
+
 if not os.path.exists(STATIC_FOLDER): os.makedirs(STATIC_FOLDER)
 
-app = Flask(__name__, static_folder=STATIC_FOLDER)
+app = Flask(__name__, static_folder=STATIC_FOLDER, template_folder=TEMPLATE_FOLDER)
 CORS(app)
 
 MQTT_HOST = "9193406657be42b498e012fd208f4cf2.s1.eu.hivemq.cloud"
@@ -29,8 +31,7 @@ devices = [
     {
         "id": 1, "name": "Đèn Phòng Khách", "pin": 23, "status": "OFF", 
         "temp": None, "pir": 0, "images": [], 
-        "last_on_time": None, "total_on_time": 0,
-        "usage_logs": []
+        "last_on_time": None, "total_on_time": 0, "usage_logs": []
     }
 ]
 
@@ -57,71 +58,35 @@ def add_history(dev_id, action, user="System"):
     history_log[dev_id].insert(0, {"time": datetime.now().strftime("%H:%M:%S %d/%m"), "action": action, "user": user})
     if len(history_log[dev_id]) > 6: history_log[dev_id] = history_log[dev_id][:6]
 
-def take_photo(dev_id):
-    try:
-        cap = cv2.VideoCapture(CAMERA_INDEX)
-        for _ in range(10): cap.read()
-        ret, frame = cap.read()
-        if ret:
-            ts = datetime.now().strftime("%H-%M-%S_%d-%m")
-            disp_time = datetime.now().strftime("%H:%M:%S %d/%m")
-            filename = f"dev_{dev_id}_{ts}.jpg"
-            cv2.imwrite(os.path.join(STATIC_FOLDER, filename), frame)
-            
-            for d in devices:
-                if d["id"] == 1:
-                    d["images"].insert(0, {"filename": filename, "time": disp_time})
-                    while len(d["images"]) > 5:
-                        old = d["images"].pop()
-                        try: os.remove(os.path.join(STATIC_FOLDER, old["filename"]))
-                        except: pass
-                    break
-            add_history(1, "CHỤP ẢNH", "System")
-            create_notification(1, "Cảm biến", "CHỤP ẢNH", "System")
-        cap.release()
-    except: pass
-
-# ===== MQTT =====
+# --- MQTT CLIENT ---
 mqtt_client = mqtt.Client()
 
 def on_connect(client, userdata, flags, rc, properties=None):
     print("MQTT Connected")
     client.subscribe("iot/devices/state")
-    client.subscribe("iot/devices/capture")
 
 def on_message(client, userdata, msg):
     global last_update_5m, last_update_1h
     try:
-        if "capture" in msg.topic:
-            threading.Thread(target=take_photo, args=(1,)).start()
-            return
-
         data = json.loads(msg.payload.decode())
         for d in devices:
             if d["id"] == 1:
                 if "pir" in data: d["pir"] = data["pir"]
-                
-                # --- SỬA LỖI Ở ĐÂY: CHỈ CẬP NHẬT NẾU NHIỆT ĐỘ > 0 ---
                 if "temp" in data: 
                     try:
                         val = float(data["temp"])
-                        # Nếu val = 0 (do ESP gửi nhanh) thì BỎ QUA, giữ nguyên số cũ
-                        if val > 0:
+                        if val > 0: # SỬA LỖI: Chỉ cập nhật nếu nhiệt độ > 0
                             d["temp"] = data["temp"]
-                            
-                            # Logic biểu đồ (chỉ chạy khi có nhiệt độ thật)
                             current_time = time.time()
                             if current_time - last_update_5m >= 300 or len(temp_history_5m) == 0:
                                 temp_history_5m.append({"time": datetime.now().strftime("%H:%M"), "temp": val})
                                 if len(temp_history_5m) > 30: temp_history_5m.pop(0)
                                 last_update_5m = current_time
-                                
                             if current_time - last_update_1h >= 3600 or len(temp_history_1h) == 0:
                                 temp_history_1h.append({"time": datetime.now().strftime("%Hh"), "temp": val})
                                 if len(temp_history_1h) > 30: temp_history_1h.pop(0)
                                 last_update_1h = current_time
                     except: pass
-                # ----------------------------------------------------
                 break
     except: pass
 
@@ -136,7 +101,32 @@ def mqtt_loop():
             mqtt_client.loop_forever()
         except: time.sleep(5)
 
-# ===== API =====
+# --- ROUTES ---
+@app.route("/")
+def index(): return render_template("index.html")
+
+@app.route("/api/upload-capture", methods=["POST"])
+def upload_capture():
+    if 'file' not in request.files: return jsonify({"error": "No file"}), 400
+    file = request.files['file']
+    if file.filename == '': return jsonify({"error": "No filename"}), 400
+    if file:
+        filename = file.filename
+        filepath = os.path.join(STATIC_FOLDER, filename)
+        file.save(filepath)
+        ts = datetime.now().strftime("%H:%M:%S %d/%m")
+        for d in devices:
+            if d["id"] == 1:
+                d["images"].insert(0, {"filename": filename, "time": ts})
+                while len(d["images"]) > 5:
+                    old = d["images"].pop()
+                    try: os.remove(os.path.join(STATIC_FOLDER, old["filename"]))
+                    except: pass
+                break
+        add_history(1, "CHỤP ẢNH", "System")
+        create_notification(1, "Cảm biến", "CHỤP ẢNH", "System")
+        return jsonify({"ok": True, "path": filename})
+
 @app.route("/api/devices", methods=["GET", "POST"])
 def handle_devices():
     if request.method == "GET": return jsonify(devices)
@@ -144,11 +134,7 @@ def handle_devices():
         next_pin = get_next_free_pin()
         if next_pin is None: return jsonify({"error": "Hết chân GPIO"}), 400
         data = request.json
-        new_dev = {
-            "id": (max(d["id"] for d in devices) + 1) if devices else 1,
-            "name": data.get("name"), "pin": next_pin, "status": "OFF", 
-            "temp": None, "pir": 0, "images": [], "last_on_time": None, "total_on_time": 0, "usage_logs": []
-        }
+        new_dev = {"id": (max(d["id"] for d in devices) + 1) if devices else 1, "name": data.get("name"), "pin": next_pin, "status": "OFF", "temp": None, "pir": 0, "images": [], "last_on_time": None, "total_on_time": 0, "usage_logs": []}
         devices.append(new_dev)
         create_notification(new_dev["id"], new_dev["name"], "THÊM THIẾT BỊ", "User Web")
         return jsonify(new_dev)
@@ -168,19 +154,14 @@ def control(did, action):
     action = action.upper()
     found = next((d for d in devices if d["id"] == did), None)
     if not found: return jsonify({"error": "404"}), 404
-    
-    if action == "ON" and found["status"] == "OFF":
-        found["last_on_time"] = time.time()
+    if action == "ON" and found["status"] == "OFF": found["last_on_time"] = time.time()
     elif action == "OFF" and found["status"] == "ON":
         if found["last_on_time"]:
             duration = time.time() - found["last_on_time"]
-            start_str = datetime.fromtimestamp(found["last_on_time"]).strftime("%H:%M:%S %d/%m")
-            end_str = datetime.now().strftime("%H:%M:%S %d/%m")
-            found["usage_logs"].insert(0, {"start": start_str, "end": end_str, "duration": duration})
+            found["usage_logs"].insert(0, {"start": datetime.fromtimestamp(found["last_on_time"]).strftime("%H:%M:%S %d/%m"), "end": datetime.now().strftime("%H:%M:%S %d/%m"), "duration": duration})
             if len(found["usage_logs"]) > 10: found["usage_logs"].pop()
             found["total_on_time"] += duration
             found["last_on_time"] = None
-
     found["status"] = action
     payload = json.dumps({"pin": found["pin"], "status": action})
     mqtt_client.publish(MQTT_TOPIC_CONTROL, payload, qos=1)
@@ -205,12 +186,7 @@ def get_hist(did): return jsonify(history_log.get(did, []))
 def get_notif(): return jsonify(notifications)
 
 @app.route("/api/stats", methods=["GET"])
-def get_stats():
-    return jsonify({
-        "chart_5m": temp_history_5m,
-        "chart_1h": temp_history_1h,
-        "devices": devices
-    })
+def get_stats(): return jsonify({"chart_5m": temp_history_5m, "chart_1h": temp_history_1h, "devices": devices})
 
 if __name__ == "__main__":
     t = threading.Thread(target=mqtt_loop, daemon=True)
