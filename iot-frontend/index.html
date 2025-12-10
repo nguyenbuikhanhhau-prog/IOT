@@ -97,13 +97,13 @@
         .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
         .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
         
-        /* CHARTS & STATS */
+        /* CHART STYLES */
         .charts-wrapper { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
         .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
         .chart-container { position: relative; height: 300px; width: 100%; }
         
-        /* Stats Dropdown */
+        /* Stats Table Dropdown */
         .stats-main-row { cursor: pointer; transition: 0.2s; }
         .stats-main-row:hover { background: #f0fdfa; }
         .stats-detail-row { display: none; background: #fffcf5; }
@@ -219,6 +219,7 @@
         }
 
         let lastNotifySignature = ""; let lastViewedTimestamp = 0; let globalNotifications = []; let lastPirState = {}; let lastGallerySignature = {}; let openHistoryIds = new Set(); let lastHistoryData = {};
+        
         let chart5m = null; let chart1h = null;
         function initCharts(data5m, data1h) {
             const ctx5m = document.getElementById('chart5m').getContext('2d');
@@ -236,12 +237,27 @@
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
             });
         }
+
         async function loadCharts() {
-            try { const res = await fetch(`${API_BASE}/api/stats`); const data = await res.json(); initCharts(data.chart_5m, data.chart_1h); } catch(e) { console.error("Lỗi chart"); }
+            try {
+                const res = await fetch(`${API_BASE}/api/stats`); const data = await res.json();
+                initCharts(data.chart_5m, data.chart_1h);
+            } catch(e) { console.error("Lỗi chart"); }
         }
 
-        let openStatsIds = new Set();
-        function toggleStats(id) { const row = document.getElementById(`stats-detail-${id}`); if (openStatsIds.has(id)) { openStatsIds.delete(id); row.classList.remove('open'); } else { openStatsIds.add(id); row.classList.add('open'); } }
+        // --- RENDER BẢNG THỜI GIAN (DROP DOWN) ---
+        let openStatsIds = new Set(); 
+
+        function toggleStats(id) {
+            const row = document.getElementById(`stats-detail-${id}`);
+            if (openStatsIds.has(id)) {
+                openStatsIds.delete(id);
+                row.classList.remove('open');
+            } else {
+                openStatsIds.add(id);
+                row.classList.add('open');
+            }
+        }
 
         function renderStatsTable(devices) {
             const tbody = document.getElementById('stats-body');
@@ -255,6 +271,7 @@
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
                 const seconds = Math.floor(totalSeconds % 60);
                 const totalTimeStr = `${hours}h ${minutes}m ${seconds}s`;
+
                 let detailsHTML = `<div style="padding:10px; color:#999; text-align:center">Chưa có lịch sử sử dụng.</div>`;
                 if ((d.usage_logs && d.usage_logs.length > 0) || d.status === "ON") {
                     detailsHTML = `<table class="detail-table"><thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Thời lượng</th></tr></thead><tbody>`;
@@ -271,8 +288,19 @@
                     }
                     detailsHTML += `</tbody></table>`;
                 }
+
                 const isOpen = openStatsIds.has(d.id) ? 'open' : '';
-                html += `<tr class="stats-main-row" onclick="toggleStats(${d.id})"><td style="font-weight:500">${d.name}</td><td>${statusText}</td><td style="font-weight:bold; color:#2c3e50">${totalTimeStr}</td><td><i class="fas fa-chevron-down" style="color:#aaa; transition:0.3s; transform: ${isOpen?'rotate(180deg)':''}"></i></td></tr><tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}"><td colspan="4" style="padding:0 !important; background:#f9f9f9"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td></tr>`;
+                html += `
+                    <tr class="stats-main-row" onclick="toggleStats(${d.id})">
+                        <td style="font-weight:500">${d.name}</td>
+                        <td>${statusText}</td>
+                        <td style="font-weight:bold; color:#2c3e50">${totalTimeStr}</td>
+                        <td><i class="fas fa-chevron-down" style="color:#aaa; transition:0.3s; transform: ${isOpen?'rotate(180deg)':''}"></i></td>
+                    </tr>
+                    <tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}">
+                        <td colspan="4" style="padding:0 !important; background:#f9f9f9"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td>
+                    </tr>
+                `;
             });
             if (tbody.innerHTML !== html) tbody.innerHTML = html;
         }
@@ -303,9 +331,19 @@
                 const isOn = d.status === "ON";
                 const statusBadge = isOn ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 10px; border-radius:15px">BẬT</span>` : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 10px; border-radius:15px">TẮT</span>`;
                 let row = document.getElementById(`row-${d.id}`); let histRow = document.getElementById(`history-${d.id}`);
-                const actionsHtml = `<button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button><button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button><div style="margin-left:auto; display:flex; gap:5px;"><button class="btn btn-edit" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')"><i class="fas fa-pen"></i></button><button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})"><i class="fas fa-trash"></i></button></div>`;
+
+                const actionsHtml = `
+                    <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button>
+                    <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button>
+                    <div style="margin-left:auto; display:flex; gap:5px;">
+                        <button class="btn btn-edit" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+
                 if (!row) {
-                    const tr = document.createElement("tr"); tr.className = "device-row"; tr.id = `row-${d.id}`; tr.setAttribute('data-id', d.id); tr.onclick = () => toggleHistory(d.id);
+                    const tr = document.createElement("tr"); tr.className = "device-row"; tr.id = `row-${d.id}`; tr.setAttribute('data-id', d.id);
+                    tr.onclick = () => toggleHistory(d.id);
                     tr.innerHTML = `<td><strong>#${d.id}</strong></td><td class="cell-name" style="font-weight:500; cursor:pointer">${d.name}</td><td class="cell-status">${statusBadge}</td><td class="cell-actions">${actionsHtml}</td>`;
                     tbody.appendChild(tr);
                     histRow = document.createElement("tr"); histRow.className = "history-row"; histRow.id = `history-${d.id}`; histRow.innerHTML = `<td colspan="4" class="history-content"><div id="hist-data-${d.id}">Đang tải...</div></td>`; tbody.appendChild(histRow);
@@ -323,10 +361,7 @@
             const container = document.getElementById('sensor-body'); let html = "";
             devices.forEach(d => {
                 if (d.id !== 1) return; 
-                // --- SỬA LẠI THÔNG BÁO Ở ĐÂY ---
-                if (lastPirState[d.id] === 0 && d.pir === 1) { 
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: `CẢNH BÁO CÓ NGƯỜI`, showConfirmButton: false, timer: 3000, background: '#ffebee', color: '#c0392b' }); 
-                }
+                if (lastPirState[d.id] === 0 && d.pir === 1) { Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: `CẢNH BÁO CÓ NGƯỜI`, showConfirmButton: false, timer: 3000, background: '#ffebee', color: '#c0392b' }); }
                 lastPirState[d.id] = d.pir;
                 const temp = d.temp ? d.temp : "--"; 
                 const pirText = d.pir === 1 ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` : `<span style="color:#95a5a6">Không</span>`;
@@ -338,7 +373,18 @@
                     d.images.forEach(img => {
                         const fullUrl = `${API_BASE}/static/${img.filename}`;
                         const downloadName = `capture_${img.time.replace(/[:\/ ]/g, '_')}.jpg`;
-                        galleryHTML += `<div class="img-item"><img src="${fullUrl}" class="img-thumb" onclick="showImage('${fullUrl}', '${img.time}')"><div style="font-size:0.9em; flex:1; cursor:pointer" onclick="showImage('${fullUrl}', '${img.time}')"><i class="far fa-clock"></i> ${img.time}<br><span style="color:#e74c3c; font-size:0.8em; font-weight:bold">Phát hiện</span></div><button class="btn-download" onclick="downloadImage('${fullUrl}', '${downloadName}')" title="Tải ảnh"><i class="fas fa-download"></i></button></div>`;
+                        galleryHTML += `
+                            <div class="img-item">
+                                <img src="${fullUrl}" class="img-thumb" onclick="showImage('${fullUrl}', '${img.time}')">
+                                <div style="font-size:0.9em; flex:1; cursor:pointer" onclick="showImage('${fullUrl}', '${img.time}')">
+                                    <i class="far fa-clock"></i> ${img.time}<br>
+                                    <span style="color:#e74c3c; font-size:0.8em; font-weight:bold">Phát hiện</span>
+                                </div>
+                                <button class="btn-download" onclick="downloadImage('${fullUrl}', '${downloadName}')" title="Tải ảnh">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                            </div>
+                        `; 
                     }); 
                 } else if (d.pir === 1) { galleryHTML += `<div style="font-size:0.9em; color:#e74c3c; font-style:italic">Đang chờ ảnh từ camera...</div>`; }
 
@@ -353,7 +399,31 @@
         function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
         function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
         function toggleHistory(id) { const row = document.getElementById(`history-${id}`); if(openHistoryIds.has(id)){ openHistoryIds.delete(id); } else { openHistoryIds.add(id); fetchHistory(id); } }
-        async function fetchHistory(id) { const div = document.getElementById(`hist-data-${id}`); if(!div) return; try { const res = await fetch(`${API_BASE}/api/devices/${id}/history`); const logs = await res.json(); const currentDataString = JSON.stringify(logs); if (lastHistoryData[id] === currentDataString && !div.innerHTML.includes("Đang tải")) return; lastHistoryData[id] = currentDataString; if(logs.length === 0){ div.innerHTML = "<i>Chưa có lịch sử.</i>"; return; } let h = `<table class="history-table"><thead><tr><th>Giờ</th><th>Hành động</th><th>User</th></tr></thead><tbody>`; logs.forEach(l => { const cls = l.action.includes('ON') ? 'badge-on' : 'badge-off'; h += `<tr><td>${l.time}</td><td class="${cls}">${l.action}</td><td>${l.user}</td></tr>` }); h += `</tbody></table>`; div.innerHTML = h; } catch(e) { console.log("Lỗi fetch history"); } }
+        
+        async function fetchHistory(id) { 
+            const div = document.getElementById(`hist-data-${id}`); if(!div) return; 
+            try { 
+                const res = await fetch(`${API_BASE}/api/devices/${id}/history`); 
+                const allLogs = await res.json(); 
+                
+                // --- LỌC BỎ CHỤP ẢNH ---
+                const logs = allLogs.filter(l => l.action !== "CHỤP ẢNH");
+
+                const currentDataString = JSON.stringify(logs); 
+                if (lastHistoryData[id] === currentDataString && !div.innerHTML.includes("Đang tải")) return; 
+                lastHistoryData[id] = currentDataString; 
+                
+                if(logs.length === 0){ div.innerHTML = "<i>Chưa có lịch sử.</i>"; return; } 
+                
+                let h = `<table class="history-table"><thead><tr><th>Giờ</th><th>Hành động</th><th>User</th></tr></thead><tbody>`; 
+                logs.forEach(l => { 
+                    const cls = l.action.includes('ON') ? 'badge-on' : 'badge-off'; 
+                    h += `<tr><td>${l.time}</td><td class="${cls}">${l.action}</td><td>${l.user}</td></tr>` 
+                }); 
+                h += `</tbody></table>`; 
+                div.innerHTML = h; 
+            } catch(e) { console.log("Lỗi fetch history"); } 
+        }
 
         // --- ACTIONS ---
         async function handleAddDevice() { const name = document.getElementById('new-dev-name').value; if(!name) return Swal.fire("Lỗi", "Vui lòng nhập tên", "error"); await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); document.getElementById('new-dev-name').value = ""; updateDashboard(); Swal.fire("Thành công", "Đã thêm thiết bị", "success"); }
