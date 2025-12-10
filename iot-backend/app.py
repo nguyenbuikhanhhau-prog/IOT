@@ -103,7 +103,8 @@ def mqtt_loop():
 
 # --- ROUTES ---
 @app.route("/")
-def index(): return render_template("index.html")
+def root():
+    return jsonify({"status": "ok"})
 
 @app.route("/api/upload-capture", methods=["POST"])
 def upload_capture():
@@ -192,3 +193,4 @@ if __name__ == "__main__":
     t = threading.Thread(target=mqtt_loop, daemon=True)
     t.start()
     app.run(host="0.0.0.0", port=5000, debug=False)
+
