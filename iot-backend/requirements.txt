@@ -2,3 +2,5 @@ flask
 flask-cors
 paho-mqtt
 gunicorn
+requests
+opencv-python-headless
