@@ -19,6 +19,8 @@
         .menu-btn { font-size: 20px; cursor: pointer; color: white; padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .menu-btn:hover { background: rgba(255,255,255,0.1); }
         .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #555; padding-left: 15px; }
+        
+        /* SIDEBAR */
         .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #1a252f; color: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
         .sidebar.active { left: 0; }
         .sidebar-header { padding: 20px; background: #009879; font-weight: bold; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -30,6 +32,8 @@
         .menu-item i { width: 25px; text-align: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
         .overlay.active { display: block; }
+        
+        /* NOTIFICATION */
         .notify-box { position: relative; cursor: pointer; }
         .notify-icon { font-size: 26px; color: #555; transition: 0.3s; }
         .notify-icon:hover { color: #009879; transform: scale(1.1); }
@@ -43,11 +47,15 @@
         .n-row2 { font-size: 0.85em; color: #7f8c8d; display: flex; justify-content: space-between; align-items: center; }
         .n-action { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; text-transform: uppercase; font-weight: bold; }
         .act-on { background: #27ae60; } .act-off { background: #e74c3c; } .act-cam { background: #f39c12; } .act-add { background: #3498db; } .act-del { background: #95a5a6; }
+
+        /* VIEWS */
         .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
         .section-view.active { display: block; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* CONTROL LAYOUT */
         .control-layout { display: flex; gap: 30px; align-items: flex-start; }
         .control-left { flex: 3; }
         .control-right { flex: 1; min-width: 350px; }
@@ -58,6 +66,7 @@
         .input-device-name:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
         .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .btn-add:hover { background: #2980b9; }
+
         .iot-table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.9em; }
         .iot-table td { padding: 15px; border-bottom: 1px solid #eee; color: #555; }
@@ -67,6 +76,8 @@
         .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
         .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
         .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
+
+        /* SENSOR & GALLERY */
         .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; }
         .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; padding-bottom: 5px; }
         .gallery-title { color: #c0392b; font-weight: bold; display: block; margin-top: 15px; margin-bottom: 10px; font-size: 0.95em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
@@ -75,6 +86,8 @@
         .img-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; }
         .btn-download { margin-left: auto; border: none; cursor: pointer; background: #f1f2f6; color: #555; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: 1px solid #ddd; }
         .btn-download:hover { background: #3498db; color: white; border-color: #3498db; }
+
+        /* TABLES */
         .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
         .history-content { padding: 20px !important; text-align: left !important; }
         .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; }
@@ -83,12 +96,14 @@
         .notify-view-table th { background: #34495e; }
         .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
         .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
+        
+        /* CHARTS & STATS */
         .charts-wrapper { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
         .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
         .chart-container { position: relative; height: 300px; width: 100%; }
         
-        /* CSS CHO BẢNG THỐNG KÊ CHI TIẾT */
+        /* Stats Dropdown */
         .stats-main-row { cursor: pointer; transition: 0.2s; }
         .stats-main-row:hover { background: #f0fdfa; }
         .stats-detail-row { display: none; background: #fffcf5; }
@@ -189,7 +204,7 @@
     </div>
 
     <script>
-        const API_BASE = "http://localhost:5000";
+        const API_BASE = "https://iot-vad5.onrender.com";
         function openMenu() { document.getElementById('sidebar').classList.add('active'); document.getElementById('overlay').classList.add('active'); }
         function closeMenu() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('overlay').classList.remove('active'); }
         function switchView(viewName, btn, title) {
@@ -204,7 +219,6 @@
         }
 
         let lastNotifySignature = ""; let lastViewedTimestamp = 0; let globalNotifications = []; let lastPirState = {}; let lastGallerySignature = {}; let openHistoryIds = new Set(); let lastHistoryData = {};
-        
         let chart5m = null; let chart1h = null;
         function initCharts(data5m, data1h) {
             const ctx5m = document.getElementById('chart5m').getContext('2d');
@@ -222,27 +236,12 @@
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } }
             });
         }
-
         async function loadCharts() {
-            try {
-                const res = await fetch(`${API_BASE}/api/stats`); const data = await res.json();
-                initCharts(data.chart_5m, data.chart_1h);
-            } catch(e) { console.error("Lỗi chart"); }
+            try { const res = await fetch(`${API_BASE}/api/stats`); const data = await res.json(); initCharts(data.chart_5m, data.chart_1h); } catch(e) { console.error("Lỗi chart"); }
         }
 
-        // --- RENDER BẢNG THỜI GIAN (DROP DOWN) ---
-        let openStatsIds = new Set(); // Theo dõi trạng thái mở dropdown
-
-        function toggleStats(id) {
-            const row = document.getElementById(`stats-detail-${id}`);
-            if (openStatsIds.has(id)) {
-                openStatsIds.delete(id);
-                row.classList.remove('open');
-            } else {
-                openStatsIds.add(id);
-                row.classList.add('open');
-            }
-        }
+        let openStatsIds = new Set();
+        function toggleStats(id) { const row = document.getElementById(`stats-detail-${id}`); if (openStatsIds.has(id)) { openStatsIds.delete(id); row.classList.remove('open'); } else { openStatsIds.add(id); row.classList.add('open'); } }
 
         function renderStatsTable(devices) {
             const tbody = document.getElementById('stats-body');
@@ -250,69 +249,32 @@
             devices.forEach(d => {
                 let currentRun = 0;
                 let statusText = d.status === "ON" ? `<span style="color:green;font-weight:bold">ĐANG CHẠY</span>` : `<span style="color:red">ĐÃ TẮT</span>`;
-                
-                if(d.status === "ON" && d.last_on_time) {
-                    currentRun = (Date.now()/1000) - d.last_on_time;
-                }
+                if(d.status === "ON" && d.last_on_time) { currentRun = (Date.now()/1000) - d.last_on_time; }
                 const totalSeconds = d.total_on_time + currentRun;
                 const hours = Math.floor(totalSeconds / 3600);
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
                 const seconds = Math.floor(totalSeconds % 60);
                 const totalTimeStr = `${hours}h ${minutes}m ${seconds}s`;
-
-                // Tạo dòng chi tiết (Lịch sử sử dụng)
                 let detailsHTML = `<div style="padding:10px; color:#999; text-align:center">Chưa có lịch sử sử dụng.</div>`;
-                if (d.usage_logs && d.usage_logs.length > 0) {
+                if ((d.usage_logs && d.usage_logs.length > 0) || d.status === "ON") {
                     detailsHTML = `<table class="detail-table"><thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Thời lượng</th></tr></thead><tbody>`;
-                    d.usage_logs.forEach(log => {
-                        const h = Math.floor(log.duration / 3600);
-                        const m = Math.floor((log.duration % 3600) / 60);
-                        const s = Math.floor(log.duration % 60);
-                        detailsHTML += `<tr><td>${log.start}</td><td>${log.end}</td><td>${h}h ${m}m ${s}s</td></tr>`;
-                    });
-                    
-                    // Nếu đang chạy thì thêm dòng hiện tại
                     if (d.status === "ON") {
-                        const curH = Math.floor(currentRun / 3600);
-                        const curM = Math.floor((currentRun % 3600) / 60);
-                        const curS = Math.floor(currentRun % 60);
+                        const curH = Math.floor(currentRun / 3600); const curM = Math.floor((currentRun % 3600) / 60); const curS = Math.floor(currentRun % 60);
                         const startTime = new Date(d.last_on_time * 1000).toLocaleTimeString();
-                        detailsHTML = detailsHTML.replace('<tbody>', `<tbody><tr style="background:#e8f5e9; font-weight:bold"><td>${startTime}</td><td>Đang chạy...</td><td>${curH}h ${curM}m ${curS}s</td></tr>`);
+                        detailsHTML += `<tr style="background:#e8f5e9; font-weight:bold; color:#27ae60"><td>${startTime}</td><td>Đang chạy...</td><td>${curH}h ${curM}m ${curS}s</td></tr>`;
+                    }
+                    if (d.usage_logs) {
+                        d.usage_logs.forEach(log => {
+                            const h = Math.floor(log.duration / 3600); const m = Math.floor((log.duration % 3600) / 60); const s = Math.floor(log.duration % 60);
+                            detailsHTML += `<tr><td>${log.start}</td><td>${log.end}</td><td>${h}h ${m}m ${s}s</td></tr>`;
+                        });
                     }
                     detailsHTML += `</tbody></table>`;
-                } else if (d.status === "ON") {
-                     // Trường hợp mới bật lần đầu chưa có log cũ
-                     const startTime = new Date(d.last_on_time * 1000).toLocaleTimeString();
-                     const curH = Math.floor(currentRun / 3600);
-                     const curM = Math.floor((currentRun % 3600) / 60);
-                     const curS = Math.floor(currentRun % 60);
-                     detailsHTML = `<table class="detail-table"><thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Thời lượng</th></tr></thead><tbody><tr style="background:#e8f5e9; font-weight:bold"><td>${startTime}</td><td>Đang chạy...</td><td>${curH}h ${curM}m ${curS}s</td></tr></tbody></table>`;
                 }
-
                 const isOpen = openStatsIds.has(d.id) ? 'open' : '';
-
-                html += `
-                    <tr class="stats-main-row" onclick="toggleStats(${d.id})">
-                        <td style="font-weight:500">${d.name}</td>
-                        <td>${statusText}</td>
-                        <td style="font-weight:bold; color:#2c3e50">${totalTimeStr}</td>
-                        <td><i class="fas fa-chevron-down" style="color:#aaa"></i></td>
-                    </tr>
-                    <tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}">
-                        <td colspan="4" class="history-content">
-                            <div style="font-weight:bold; color:#e67e22; margin-bottom:5px">Chi tiết phiên hoạt động:</div>
-                            ${detailsHTML}
-                        </td>
-                    </tr>
-                `;
+                html += `<tr class="stats-main-row" onclick="toggleStats(${d.id})"><td style="font-weight:500">${d.name}</td><td>${statusText}</td><td style="font-weight:bold; color:#2c3e50">${totalTimeStr}</td><td><i class="fas fa-chevron-down" style="color:#aaa; transition:0.3s; transform: ${isOpen?'rotate(180deg)':''}"></i></td></tr><tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}"><td colspan="4" style="padding:0 !important; background:#f9f9f9"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td></tr>`;
             });
-            
-            // Cập nhật HTML (Có thể gây nháy nhẹ nếu mở dropdown, nhưng chấp nhận được để realtime)
-            // Để mượt hơn, có thể dùng diffing, nhưng ở đây update toàn bộ cho đồng bộ
-            const container = document.getElementById('stats-body');
-            // Chỉ update nếu người dùng không đang click (để tránh mất focus/click event)
-            // Tuy nhiên với logic này, ta cứ update đè, trạng thái open/close được lưu trong openStatsIds rồi nên ko sao
-            if (container.innerHTML !== html) container.innerHTML = html;
+            if (tbody.innerHTML !== html) tbody.innerHTML = html;
         }
 
         function toggleNotify() {
@@ -327,8 +289,6 @@
                 globalNotifications = notis;
                 renderControlView(devices); renderSensorPanel(devices); renderDevelopmentView(devices); updateBell(notis);
                 if(document.getElementById('view-notification').classList.contains('active')) { renderNotificationPage(notis); }
-                
-                // Cập nhật bảng thời gian (Realtime)
                 if(document.getElementById('view-stats').classList.contains('active')) { renderStatsTable(devices); }
             } catch (e) { console.error(e); }
         }
@@ -343,19 +303,9 @@
                 const isOn = d.status === "ON";
                 const statusBadge = isOn ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 10px; border-radius:15px">BẬT</span>` : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 10px; border-radius:15px">TẮT</span>`;
                 let row = document.getElementById(`row-${d.id}`); let histRow = document.getElementById(`history-${d.id}`);
-
-                const actionsHtml = `
-                    <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button>
-                    <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button>
-                    <div style="margin-left:auto; display:flex; gap:5px;">
-                        <button class="btn btn-edit" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')"><i class="fas fa-pen"></i></button>
-                        <button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-
+                const actionsHtml = `<button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button><button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button><div style="margin-left:auto; display:flex; gap:5px;"><button class="btn btn-edit" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')"><i class="fas fa-pen"></i></button><button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})"><i class="fas fa-trash"></i></button></div>`;
                 if (!row) {
-                    const tr = document.createElement("tr"); tr.className = "device-row"; tr.id = `row-${d.id}`; tr.setAttribute('data-id', d.id);
-                    tr.onclick = () => toggleHistory(d.id);
+                    const tr = document.createElement("tr"); tr.className = "device-row"; tr.id = `row-${d.id}`; tr.setAttribute('data-id', d.id); tr.onclick = () => toggleHistory(d.id);
                     tr.innerHTML = `<td><strong>#${d.id}</strong></td><td class="cell-name" style="font-weight:500; cursor:pointer">${d.name}</td><td class="cell-status">${statusBadge}</td><td class="cell-actions">${actionsHtml}</td>`;
                     tbody.appendChild(tr);
                     histRow = document.createElement("tr"); histRow.className = "history-row"; histRow.id = `history-${d.id}`; histRow.innerHTML = `<td colspan="4" class="history-content"><div id="hist-data-${d.id}">Đang tải...</div></td>`; tbody.appendChild(histRow);
@@ -373,30 +323,22 @@
             const container = document.getElementById('sensor-body'); let html = "";
             devices.forEach(d => {
                 if (d.id !== 1) return; 
-                if (lastPirState[d.id] === 0 && d.pir === 1) { Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: `Cảnh báo: ${d.name}`, showConfirmButton: false, timer: 3000, background: '#ffebee', color: '#c0392b' }); }
+                // --- SỬA LẠI THÔNG BÁO Ở ĐÂY ---
+                if (lastPirState[d.id] === 0 && d.pir === 1) { 
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: `CẢNH BÁO CÓ NGƯỜI`, showConfirmButton: false, timer: 3000, background: '#ffebee', color: '#c0392b' }); 
+                }
                 lastPirState[d.id] = d.pir;
                 const temp = d.temp ? d.temp : "--"; 
                 const pirText = d.pir === 1 ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` : `<span style="color:#95a5a6">Không</span>`;
                 
                 let galleryHTML = `<span class="gallery-title" style="color:#aaa; font-weight:normal"><i class="fas fa-check-circle"></i> An toàn</span>`;
-                if (d.pir === 1) { galleryHTML = `<span class="gallery-title"><i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI</span>`; }
+                if (d.pir === 1 || (d.images && d.images.length > 0)) { galleryHTML = `<span class="gallery-title"><i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI</span>`; }
 
                 if (d.images && d.images.length > 0) { 
                     d.images.forEach(img => {
                         const fullUrl = `${API_BASE}/static/${img.filename}`;
                         const downloadName = `capture_${img.time.replace(/[:\/ ]/g, '_')}.jpg`;
-                        galleryHTML += `
-                            <div class="img-item">
-                                <img src="${fullUrl}" class="img-thumb" onclick="showImage('${fullUrl}', '${img.time}')">
-                                <div style="font-size:0.9em; flex:1; cursor:pointer" onclick="showImage('${fullUrl}', '${img.time}')">
-                                    <i class="far fa-clock"></i> ${img.time}<br>
-                                    <span style="color:#e74c3c; font-size:0.8em; font-weight:bold">Phát hiện</span>
-                                </div>
-                                <button class="btn-download" onclick="downloadImage('${fullUrl}', '${downloadName}')" title="Tải ảnh">
-                                    <i class="fas fa-download"></i>
-                                </button>
-                            </div>
-                        `; 
+                        galleryHTML += `<div class="img-item"><img src="${fullUrl}" class="img-thumb" onclick="showImage('${fullUrl}', '${img.time}')"><div style="font-size:0.9em; flex:1; cursor:pointer" onclick="showImage('${fullUrl}', '${img.time}')"><i class="far fa-clock"></i> ${img.time}<br><span style="color:#e74c3c; font-size:0.8em; font-weight:bold">Phát hiện</span></div><button class="btn-download" onclick="downloadImage('${fullUrl}', '${downloadName}')" title="Tải ảnh"><i class="fas fa-download"></i></button></div>`;
                     }); 
                 } else if (d.pir === 1) { galleryHTML += `<div style="font-size:0.9em; color:#e74c3c; font-style:italic">Đang chờ ảnh từ camera...</div>`; }
 
@@ -405,28 +347,8 @@
             if (container.innerHTML !== html) container.innerHTML = html;
         }
 
-        function downloadImage(url, filename) {
-            event.stopPropagation();
-            const a = document.createElement('a'); a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        }
-
-        function updateBell(data) {
-            let unreadCount = 0; data.forEach(item => { if (item.ts > lastViewedTimestamp) unreadCount++; });
-            const badge = document.getElementById('notify-count');
-            if (unreadCount > 0) { badge.innerText = unreadCount > 9 ? '9+' : unreadCount; badge.style.display = 'block'; } else { badge.style.display = 'none'; }
-            const currentSig = JSON.stringify(data); if (currentSig === lastNotifySignature) return; lastNotifySignature = currentSig;
-            const listDiv = document.getElementById('notify-list'); if (data.length === 0) { listDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Chưa có thông báo</div>'; return; }
-            let html = '';
-            data.forEach(item => {
-                let cls = 'act-on'; let displayName = item.name;
-                if(item.action === 'OFF') cls = 'act-off'; if(item.action === 'CHỤP ẢNH') { cls = 'act-cam'; displayName = "Cảm biến có người"; }
-                if(item.action.includes('THÊM')) cls = 'act-add'; if(item.action.includes('XÓA')) cls = 'act-del';
-                html += `<div class="notify-item"><div class="n-row1"><span>${displayName} <small style="color:#aaa">#${item.id}</small></span><span class="n-action ${cls}">${item.action}</span></div><div class="n-row2"><span><i class="far fa-user"></i> ${item.user}</span><span><i class="far fa-clock"></i> ${item.time}</span></div></div>`;
-            });
-            listDiv.innerHTML = html;
-        }
-
+        function downloadImage(url, filename) { event.stopPropagation(); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+        function updateBell(data) { let unreadCount = 0; data.forEach(item => { if (item.ts > lastViewedTimestamp) unreadCount++; }); const badge = document.getElementById('notify-count'); if (unreadCount > 0) { badge.innerText = unreadCount > 9 ? '9+' : unreadCount; badge.style.display = 'block'; } else { badge.style.display = 'none'; } const currentSig = JSON.stringify(data); if (currentSig === lastNotifySignature) return; lastNotifySignature = currentSig; const listDiv = document.getElementById('notify-list'); if (data.length === 0) { listDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#999">Chưa có thông báo</div>'; return; } let html = ''; data.forEach(item => { let cls = 'act-on'; let displayName = item.name; if(item.action === 'OFF') cls = 'act-off'; if(item.action === 'CHỤP ẢNH') { cls = 'act-cam'; displayName = "Cảm biến có người"; } if(item.action.includes('THÊM')) cls = 'act-add'; if(item.action.includes('XÓA')) cls = 'act-del'; html += `<div class="notify-item"><div class="n-row1"><span>${displayName} <small style="color:#aaa">#${item.id}</small></span><span class="n-action ${cls}">${item.action}</span></div><div class="n-row2"><span><i class="far fa-user"></i> ${item.user}</span><span><i class="far fa-clock"></i> ${item.time}</span></div></div>`; }); listDiv.innerHTML = html; }
         function renderNotificationPage(notis) { const tbody = document.getElementById('notify-body'); if (notis.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px">Chưa có dữ liệu</td></tr>'; return; } let html = ""; notis.forEach(n => { let badgeClass = "tag-user"; if (n.user === "System") badgeClass = "tag-sys"; let rowColor = ""; if (n.action.includes("CHỤP")) rowColor = "background:#fffbf0"; let displayName = n.name; if(n.action === 'CHỤP ẢNH') displayName = "Cảm biến có người"; html += `<tr style="${rowColor}"><td style="color:#555">${n.time}</td><td style="font-weight:500">${displayName} <small style="color:#999">#${n.id}</small></td><td style="font-weight:bold">${n.action}</td><td><span class="tag ${badgeClass}">${n.user}</span></td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
         function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
         function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
