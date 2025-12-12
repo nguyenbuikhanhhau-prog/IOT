@@ -336,8 +336,38 @@
         statusMessage.style.display = "block";
     }
 });
+        forgotForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("forgot-email").value;
+
+    try {
+        const res = await fetch("/forgot_password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            statusMessage.className = "message success";
+            statusMessage.innerText = data.message || "Nếu email tồn tại, mật khẩu mới đã được gửi.";
+        } else {
+            statusMessage.className = "message error";
+            statusMessage.innerText = data.message || "Có lỗi xảy ra.";
+        }
+        statusMessage.style.display = "block";
+
+    } catch (err) {
+        statusMessage.className = "message error";
+        statusMessage.innerText = "Không kết nối được server.";
+        statusMessage.style.display = "block";
+    }
+})
     </script>
 </body>
 
 </html>
+
 
