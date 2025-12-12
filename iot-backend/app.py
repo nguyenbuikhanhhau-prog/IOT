@@ -25,7 +25,7 @@ dropdown_last_clear = 0
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_FOLDER = os.path.join(BASE_DIR, "static")
 CAPTURE_FOLDER = os.path.join(STATIC_FOLDER, "captures")
-TEMPLATE_FOLDER = os.path.join(BASE_DIR, "../iot-frontend")
+TEMPLATE_FOLDER = os.path.join(BASE_DIR, "templates")
 
 if not os.path.exists(STATIC_FOLDER): os.makedirs(STATIC_FOLDER)
 if not os.path.exists(CAPTURE_FOLDER): os.makedirs(CAPTURE_FOLDER)
@@ -425,4 +425,5 @@ current_user = None
 if __name__ == '__main__':
     threading.Thread(target=run_mqtt, daemon=True).start()
     print("🚀 App running port 5000")
+
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
