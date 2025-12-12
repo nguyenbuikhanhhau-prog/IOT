@@ -39,8 +39,8 @@ bcrypt = Bcrypt(app) # Khởi tạo Bcrypt
 # ==========================================
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=465
+SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
 
 # ==========================================
 # 3. QUẢN LÝ NGƯỜI DÙNG (DATABASE MOCKUP)
@@ -434,5 +434,6 @@ if __name__ == '__main__':
     print("🚀 App running port 5000")
 
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
