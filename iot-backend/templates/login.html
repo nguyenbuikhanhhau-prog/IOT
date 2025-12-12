@@ -303,7 +303,41 @@
         statusMessage.style.display = "block";
     }
 });
+        registerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("reg-email").value;
+    const password = document.getElementById("reg-password").value;
+
+    try {
+        const res = await fetch("/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            statusMessage.className = "message success";
+            statusMessage.innerText = data.message || "Đăng ký thành công!";
+            statusMessage.style.display = "block";
+
+            // Sau khi register → quay về login
+            setTimeout(() => {
+                showForm("login");
+            }, 800);
+        } else {
+            throw new Error(data.message || "Đăng ký thất bại");
+        }
+    } catch (err) {
+        statusMessage.className = "message error";
+        statusMessage.innerText = err.message || "Không kết nối được server";
+        statusMessage.style.display = "block";
+    }
+});
     </script>
 </body>
 
 </html>
+
