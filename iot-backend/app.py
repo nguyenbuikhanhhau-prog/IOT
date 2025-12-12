@@ -39,8 +39,8 @@ bcrypt = Bcrypt(app) # Khởi tạo Bcrypt
 # ==========================================
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=465
 
 # ==========================================
 # 3. QUẢN LÝ NGƯỜI DÙNG (DATABASE MOCKUP)
@@ -63,10 +63,9 @@ def send_password_email(recipient_email, new_password):
         msg['From'] = EMAIL_USER
         msg['To'] = recipient_email
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_USER, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_USER, recipient_email, msg.as_string())
+with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    server.login(EMAIL_USER, EMAIL_PASSWORD)
+    server.sendmail(EMAIL_USER, recipient_email, msg.as_string())
         print(f"📧 Gửi email thành công tới: {recipient_email}")
         return True
     except Exception as e:
@@ -427,3 +426,4 @@ if __name__ == '__main__':
     print("🚀 App running port 5000")
 
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
