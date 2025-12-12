@@ -278,6 +278,71 @@
         showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showForm('register'); });
         showForgotLink.addEventListener('click', (e) => { e.preventDefault(); showForm('forgot'); });
         showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showForm('login'); });
+        const API_BASE = "https://iot-vad5.onrender.com";
+
+function showMsg(type, text) {
+  statusMessage.className = `message ${type}`;
+  statusMessage.innerText = text;
+  statusMessage.style.display = 'block';
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      showMsg("success", data.message || "Đăng nhập OK!");
+      // vào dashboard (Netlify)
+      setTimeout(() => window.location.href = "/dashboard.html", 300);
+    } else {
+      showMsg("error", data.message || "Sai email hoặc mật khẩu");
+    }
+  } catch (err) {
+    showMsg("error", "Không kết nối được server Render");
+  }
+});
+
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+
+  const res = await fetch(`${API_BASE}/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  showMsg(res.ok ? "success" : "error", data.message || "Done");
+  if (res.ok) setTimeout(() => showForm('login'), 400);
+});
+
+forgotForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('forgot-email').value.trim();
+
+  const res = await fetch(`${API_BASE}/forgot_password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email })
+  });
+  const data = await res.json();
+  showMsg("success", data.message || "Check email nha");
+});
+
     </script>
 </body>
 </html>
+
