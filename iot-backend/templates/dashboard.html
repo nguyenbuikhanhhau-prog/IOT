@@ -296,7 +296,7 @@
     <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
 
     <script>
-        const API_BASE = "http://localhost:5000";
+        const API_BASE = "";
         const CAM_BASE = "http://localhost:5001";
 
         let lastSeenImageTime = localStorage.getItem('lastSeenImageTime') || '00:00:00 01/01';
@@ -643,4 +643,5 @@ switchView = function(viewName, btn, title) {
 }
     </script>
 </body>
+
 </html>
