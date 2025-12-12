@@ -278,6 +278,32 @@
         showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); showForm('register'); });
         showForgotLink.addEventListener('click', (e) => { e.preventDefault(); showForm('forgot'); });
         showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showForm('login'); });
+        loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById("login-email").value;
+    const password = document.getElementById("login-password").value;
+
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+        statusMessage.className = "message success";
+        statusMessage.innerText = data.message;
+        statusMessage.style.display = "block";
+        setTimeout(() => window.location.href = "/", 700);
+    } else {
+        statusMessage.className = "message error";
+        statusMessage.innerText = data.message || "Đăng nhập thất bại";
+        statusMessage.style.display = "block";
+    }
+});
     </script>
 </body>
+
 </html>
