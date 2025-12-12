@@ -1,5 +1,7 @@
 flask
 flask-cors
+flask-bcrypt
+python-dotenv
 paho-mqtt
 gunicorn
 requests
