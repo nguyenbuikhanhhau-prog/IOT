@@ -58,19 +58,27 @@ def generate_random_password(length=8):
 
 def send_password_email(recipient_email, new_password):
     try:
-        msg = MIMEText(f"Mật khẩu mới của bạn là: {new_password}\n\nVui lòng đăng nhập và đổi mật khẩu.", 'plain', 'utf-8')
+        msg = MIMEText(
+            f"Mật khẩu mới của bạn là: {new_password}\n\nVui lòng đăng nhập và đổi mật khẩu.",
+            'plain',
+            'utf-8'
+        )
         msg['Subject'] = 'Mật khẩu mới cho hệ thống IOT của bạn'
         msg['From'] = EMAIL_USER
         msg['To'] = recipient_email
 
-with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-    server.login(EMAIL_USER, EMAIL_PASSWORD)
-    server.sendmail(EMAIL_USER, recipient_email, msg.as_string())
+        # SMTP SSL (465)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(EMAIL_USER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_USER, recipient_email, msg.as_string())
+
         print(f"📧 Gửi email thành công tới: {recipient_email}")
         return True
+
     except Exception as e:
-        print(f"❌ Lỗi gửi email: {e}")
+        print("❌ SMTP ERROR:", repr(e))
         return False
+
 
 # ==========================================
 # 6. API FLASK (THÊM CÁC API ĐĂNG NHẬP/ĐĂNG KÝ)
@@ -426,4 +434,5 @@ if __name__ == '__main__':
     print("🚀 App running port 5000")
 
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
