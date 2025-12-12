@@ -591,7 +591,7 @@ async function loadAccountInfo() {
 
 async function handleLogout() {
     try {
-        const response = await fetch('/logout', { method: 'POST' });
+        const response = await fetch('${API_BASE}/logout', { method: 'POST' });
         // Dù API có trả về thành công hay không, chúng ta luôn chuyển hướng về trang chính (/)
         // vì route '/' của Flask đã được cấu hình để hiển thị login.html nếu chưa đăng nhập.
         window.location.href = '/'; 
@@ -615,7 +615,7 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
     }
 
     try {
-        const response = await fetch('/change_password', {
+        const response = await fetch('${API_BASE}/change_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ old_password: oldPass, new_password: newPass })
@@ -644,4 +644,5 @@ switchView = function(viewName, btn, title) {
     </script>
 </body>
 </html>
+
 
