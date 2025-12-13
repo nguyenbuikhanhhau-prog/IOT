@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, render_template, session
-from datetime import timedelta
+from datetime import timedelta, datetime
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -47,7 +47,33 @@ users = [
         "password": bcrypt.generate_password_hash("admin").decode("utf-8")
     }
 ]
+# --- CẤU HÌNH THIẾT BỊ GIẢ LẬP (MOCK DEVICE) ---
+output_devices = [
+    {
+        "id": 1, 
+        "name": "Đèn Vườn (Mặc định)", 
+        "pin": 13, 
+        "status": "OFF", 
+        "last_on_time": None, 
+        "total_on_time": 0, 
+        "usage_logs": []
+    }
+]
+notifications = [] # Lưu danh sách thông báo
+dropdown_last_clear = 0
 
+# --- HÀM HỖ TRỢ THÊM THÔNG BÁO ---
+def add_notification(name, action, user="System"):
+    ts_str = datetime.now().strftime("%H:%M:%S %d/%m")
+    notifications.insert(0, {
+        "id": int(time.time()*1000), 
+        "name": name, 
+        "action": action, 
+        "time": ts_str, 
+        "user": user,
+        "ts": time.time()
+    })
+    if len(notifications) > 50: notifications.pop()
 # ===============================
 # HELPER FUNCTIONS
 # ===============================
@@ -105,17 +131,79 @@ def index():
         return render_template("index.html")
     return render_template("login.html")
     
-@app.route("/api/notifications")
-def api_notifications():
-    return jsonify([])
+# --- API ĐIỀU KHIỂN THIẾT BỊ (ON/OFF) ---
+@app.route("/api/devices/<int:dev_id>/<action>", methods=["POST"])
+def control_device(dev_id, action):
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    
+    action = action.upper()
+    # Tìm thiết bị
+    dev = next((d for d in output_devices if d["id"] == dev_id), None)
+    
+    if dev:
+        dev["status"] = action
+        # Gửi lệnh MQTT (Nếu có thiết bị thật)
+        # mqtt_client.publish("iot/control", json.dumps({"pin": dev["pin"], "status": action}))
+        
+        # Ghi log thời gian
+        if action == "ON": 
+            dev["last_on_time"] = time.time()
+        elif action == "OFF" and dev["last_on_time"]:
+            dur = time.time() - dev["last_on_time"]
+            dev["total_on_time"] += dur
+            dev["usage_logs"].insert(0, {
+                "start": datetime.fromtimestamp(dev["last_on_time"]).strftime("%H:%M:%S"), 
+                "end": datetime.now().strftime("%H:%M:%S"), 
+                "duration": dur
+            })
+            dev["last_on_time"] = None
+            
+        # Thêm thông báo
+        add_notification(dev["name"], action, session.get("email", "User"))
+        return jsonify({"success": True})
+        
+    return jsonify({"success": False, "message": "Device not found"}), 404
 
-@app.route("/api/notifications/dropdown")
-def api_notifications_dropdown():
-    return jsonify([])
+# --- API LẤY DANH SÁCH THIẾT BỊ (Sửa lại hàm get_devices cũ) ---
+@app.route("/api/devices", methods=["GET"])
+def get_devices_list():
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    # Trả về danh sách thiết bị mock (đã update trạng thái)
+    # Kết hợp thêm dữ liệu cảm biến mới nhất từ MQTT nếu cần
+    resp = json.loads(json.dumps(output_devices)) 
+    if latest_device_data: 
+        # Update dữ liệu cảm biến vào thiết bị đầu tiên (ví dụ)
+        resp[0].update(latest_device_data)
+    return jsonify(resp)
+
+# --- API THÔNG BÁO ---
+@app.route("/api/notifications", methods=["GET"])
+def api_notifications():
+    # Trả về toàn bộ thông báo cho trang Notification
+    if "user_id" not in session: return jsonify([]), 401
+    return jsonify(notifications)
+
+@app.route("/api/notifications/dropdown", methods=["GET"])
+def get_dropdown_notif():
+    if "user_id" not in session: return jsonify([]), 401
+    # Lấy thông báo mới hơn thời điểm xóa gần nhất
+    filtered = [n for n in notifications if n.get('ts', 0) > dropdown_last_clear]
+    return jsonify(filtered)
 
 @app.route("/api/notifications/clear", methods=["POST"])
-def clear_notifications():
+def clear_dropdown():
+    global dropdown_last_clear
+    dropdown_last_clear = time.time()
     return jsonify({"success": True})
+
+@app.route("/api/devices/<int:dev_id>/history", methods=["GET"])
+def get_device_history(dev_id):
+    if "user_id" not in session: return jsonify([]), 401
+    dev = next((d for d in output_devices if d["id"] == dev_id), None)
+    if not dev: return jsonify([])
+    # Lọc lịch sử từ danh sách thông báo
+    device_history = [n for n in notifications if n['name'] == dev['name']]
+    return jsonify(device_history)
 
 # --- CẤU HÌNH THIẾT BỊ GIẢ LẬP (MOCK DEVICE) ---
 # Thêm cái này vào đầu file, gần chỗ khai báo users
@@ -378,13 +466,3 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
-
-
-
-
-
-
-
-
-
-
