@@ -298,7 +298,7 @@
     <script>
         const API_BASE = "";
         const CAM_BASE = "http://localhost:5001";
-
+        let currentView = "control";
         let lastSeenImageTime = localStorage.getItem('lastSeenImageTime') || '00:00:00 01/01';
         let isGalleryOpen = false;
         let lastNotifySignature = ""; let lastViewedTimestamp = 0; let globalNotifications = []; let lastPirState = {}; 
@@ -309,20 +309,34 @@
         // --- MENU LOGIC ---
         function openMenu() { document.getElementById('sidebar').classList.add('active'); document.getElementById('overlay').classList.add('active'); }
         function closeMenu() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('overlay').classList.remove('active'); }
-        function switchView(viewName, btn, title) {
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewName}`).classList.add('active');
-            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('page-title').innerText = title;
-            closeMenu();
-            if (viewName === 'notification') updateDashboard();
-            if (viewName === 'stats') loadCharts();
-            if (viewName !== 'camera') stopStream();
-        }
+function switchView(viewName, btn, title) {
+    currentView = viewName; // 🔥 CHỐT VIEW HIỆN TẠI
+
+    document.querySelectorAll('.section-view')
+        .forEach(el => el.classList.remove('active'));
+
+    document.getElementById(`view-${viewName}`)
+        .classList.add('active');
+
+    document.querySelectorAll('.menu-item')
+        .forEach(el => el.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById('page-title').innerText = title;
+
+    closeMenu();
+
+    // chỉ load đúng thứ cần
+    if (viewName === 'control') updateDashboard();
+    if (viewName === 'account') loadAccountInfo();
+    if (viewName === 'stats') loadCharts();
+    if (viewName !== 'camera') stopStream();
+}
+
 
         // --- CORE UPDATE FUNCTION ---
         async function updateDashboard() { 
+                if (currentView !== "control") return;
             try { 
 const resDev = await fetch(`${API_BASE}/api/devices`, {
     credentials: "include" // 🔥 BẮT BUỘC
@@ -634,13 +648,7 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
 });
 
 // Chỉnh sửa switchView để tải thông tin tài khoản khi chuyển view
-const originalSwitchView = switchView;
-switchView = function(viewName, btn, title) {
-    originalSwitchView(viewName, btn, title);
-    if (viewName === 'account') {
-        loadAccountInfo();
-    }
-}
+        
         async function checkLogin() {
     try {
         const res = await fetch("/api/user_status", {
@@ -658,11 +666,17 @@ switchView = function(viewName, btn, title) {
 (async () => {
     await checkLogin();   // 🔐 CHẶN TRƯỚC
     updateDashboard();
-    setInterval(updateDashboard, 1000);
+   setInterval(() => {
+    if (currentView === "control") {
+        updateDashboard();
+    }
+}, 1000);
+
 })();
 
     </script>
 </body>
 
 </html>
+
 
