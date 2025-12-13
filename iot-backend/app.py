@@ -105,6 +105,18 @@ def index():
         return render_template("index.html")
     return render_template("login.html")
 
+@app.route("/api/iot_data", methods=["GET"])
+def get_iot_data():
+    if not latest_device_data:
+        return jsonify({
+            "success": False,
+            "message": "Chưa có dữ liệu từ MQTT"
+        })
+    return jsonify({
+        "success": True,
+        "data": latest_device_data
+    })
+
 @app.route("/api/devices", methods=["GET"])
 def get_devices():
     if "user_id" not in session:
@@ -244,6 +256,7 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
 
