@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import os, string, random, time
-import threading 
+import threading
 import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
@@ -14,7 +14,7 @@ import requests
 load_dotenv()
 
 # ===============================
-# CẤU HÌNH & KHỞI TẠO
+# 1. CẤU HÌNH HỆ THỐNG
 # ===============================
 MQTT_HOST = os.getenv("MQTT_HOST")
 MQTT_PORT = 8883
@@ -35,8 +35,9 @@ CORS(app)
 bcrypt = Bcrypt(app)
 
 # ===============================
-# QUẢN LÝ KHO CHÂN GPIO
+# 2. QUẢN LÝ KHO CHÂN GPIO
 # ===============================
+# Loại bỏ chân 4 (DHT11) và các chân Flash
 SAFE_GPIO_POOL = [2, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
 
 output_devices = [
@@ -61,7 +62,7 @@ def init_pin_warehouse():
 init_pin_warehouse() 
 
 # ===============================
-# DỮ LIỆU & BIẾN PHỤ TRỢ
+# 3. DỮ LIỆU & BIẾN PHỤ TRỢ
 # ===============================
 users = [
     {
@@ -72,9 +73,9 @@ users = [
 ]
 notifications = []
 dropdown_last_clear = 0
-latest_device_data = {} # Dữ liệu cảm biến mới nhất
-sensor_state = {"images": []} # Riêng cho ảnh camera
-last_trigger_time = 0 # Chống spam chụp ảnh
+latest_device_data = {} 
+sensor_state = {"images": []} 
+last_trigger_time = 0 
 
 def add_notification(name, action, user="System"):
     ts_str = datetime.now().strftime("%H:%M:%S %d/%m")
@@ -89,7 +90,7 @@ def add_notification(name, action, user="System"):
     if len(notifications) > 100: notifications.pop()
 
 # ===============================
-# HÀM CHỤP ẢNH TỪ SERVICE
+# 4. HÀM CHỤP ẢNH (GỌI SERVICE 5001)
 # ===============================
 def process_camera_capture(trigger_source="AUTO"):
     try:
@@ -117,7 +118,7 @@ def process_camera_capture(trigger_source="AUTO"):
         print(f"❌ Lỗi Camera: {e}")
 
 # ===============================
-# MQTT HANDLERS (ĐÃ SỬA LOGIC NHẬN PIR)
+# 5. MQTT HANDLERS
 # ===============================
 def on_connect(client, userdata, flags, rc):
     print("🔌 MQTT connected:", rc)
@@ -128,7 +129,7 @@ def on_message(client, userdata, msg):
     try:
         payload = msg.payload.decode()
         
-        # 1. Xử lý lệnh chụp ảnh chủ động (nếu ESP32 gửi topic capture)
+        # Xử lý lệnh chụp ảnh chủ động
         if msg.topic == MQTT_CAPTURE_TOPIC:
             if time.time() - last_trigger_time > 5:
                 print("🚨 ESP32 Trigger: Chụp ảnh!")
@@ -136,31 +137,23 @@ def on_message(client, userdata, msg):
                 last_trigger_time = time.time()
             return
 
-        # 2. Xử lý dữ liệu cảm biến (Topic state)
+        # Xử lý dữ liệu cảm biến
         if msg.topic == MQTT_TOPIC:
             data = json.loads(payload)
-            
-            # --- QUAN TRỌNG: Dùng update để không mất dữ liệu cũ ---
             latest_device_data.update(data)
             
-            # --- LOGIC PHÁT HIỆN NGƯỜI TỪ CHÂN 35 ---
-            # ESP32 gửi lên: {"pir": 1} hoặc {"pir": 0}
-            if "pir" in data:
-                pir_val = int(data["pir"])
-                # In ra để debug xem server có nhận được không
-                if pir_val == 1:
-                    print(f"🔥 [PIR DETECTED] Có người! (Data: {data})")
-                    
-                    # Tự động chụp ảnh nếu có người (giới hạn 5s/lần)
-                    if time.time() - last_trigger_time > 5:
-                        threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
-                        last_trigger_time = time.time()
+            # Logic phát hiện người (PIR)
+            if "pir" in data and int(data["pir"]) == 1:
+                print(f"🔥 [PIR DETECTED] Có người! (Data: {data})")
+                if time.time() - last_trigger_time > 5:
+                    threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
+                    last_trigger_time = time.time()
                         
     except Exception as e:
         print("❌ MQTT Error:", e)
 
 # ===============================
-# API ROUTES
+# 6. API ROUTES
 # ===============================
 @app.route("/api/devices", methods=["POST"])
 def add_device():
@@ -205,7 +198,6 @@ def rename_device(dev_id):
 def get_devices_list():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     resp = json.loads(json.dumps(output_devices))
-    # Gắn dữ liệu cảm biến vào thiết bị đầu tiên
     if len(resp) > 0:
         if latest_device_data: resp[0].update(latest_device_data)
         if sensor_state["images"]: resp[0]["images"] = sensor_state["images"]
@@ -231,7 +223,13 @@ def control_device(dev_id, action):
         return jsonify({"success": True})
     return jsonify({"success": False}), 404
 
-# --- API KHÁC ---
+@app.route("/api/capture", methods=['POST'])
+def manual_capture():
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    threading.Thread(target=process_camera_capture, args=("MANUAL",)).start()
+    return jsonify({"success": True})
+
+# --- AUTH & SYSTEM ROUTES ---
 @app.route("/")
 def index():
     if "user_id" in session: return render_template("index.html")
@@ -262,13 +260,12 @@ def clear_dropdown():
 @app.route("/api/stats")
 def api_stats(): return jsonify({"chart_5m": [], "chart_1h": []})
 
-@app.route("/api/capture", methods=['POST'])
-def manual_capture():
-    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    threading.Thread(target=process_camera_capture, args=("MANUAL",)).start()
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.json
+    users.append({"id": len(users)+1, "email": data["email"], "password": bcrypt.generate_password_hash(data["password"]).decode("utf-8")})
     return jsonify({"success": True})
 
-# AUTH
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
@@ -298,7 +295,9 @@ def change_password():
     user["password"] = bcrypt.generate_password_hash(data.get("new_password")).decode("utf-8")
     return jsonify({"success": True})
 
-# RUN
+# ===============================
+# 7. RUN
+# ===============================
 mqtt_client = mqtt.Client()
 def run_mqtt():
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS); mqtt_client.tls_set()
@@ -312,4 +311,5 @@ if not any(u['email'] == "admin@iot.com" for u in users):
     users.append({"id": 1, "email": "admin@iot.com", "password": bcrypt.generate_password_hash("admin").decode('utf-8')})
 
 if __name__ == '__main__':
+    print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
