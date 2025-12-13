@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* === CSS CƠ BẢN === */
+        /* === CSS (Giữ nguyên cho đẹp) === */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
         .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header-left { display: flex; align-items: center; gap: 15px; }
@@ -328,9 +328,8 @@
             document.getElementById('page-title').innerText = title;
             closeMenu();
             
-            // === [FIX LỖI MẤT DEV MODE] ===
-            // Thêm view 'development' vào đây để nó gọi update
-            if (viewName === 'control' || viewName === 'development') updateDashboard();
+            // Cập nhật dữ liệu ngay lập tức cho các view quan trọng
+            if (viewName === 'control' || viewName === 'development' || viewName === 'stats' || viewName === 'notification') updateDashboard();
             
             if (viewName === 'account') loadAccountInfo();
             if (viewName === 'stats') loadCharts();
@@ -399,14 +398,14 @@
 
         // --- CORE UPDATE FUNCTION ---
         async function updateDashboard() { 
-            // === [FIX LỖI MẤT DEV MODE] ===
-            // Cho phép chạy khi đang ở trang 'development'
-            if (currentView !== "control" && currentView !== "notification" && currentView !== "development") return;
+            // KHÔNG CÓ LOGIC CHẶN NỮA -> CẬP NHẬT TOÀN BỘ NGẦM
+            if (currentView === "account") return; // Trừ trang Account không cần update liên tục
             
             try { 
                 const resDev = await fetch(`${API_BASE}/api/devices`, { credentials: "include" });
                 const devices = await resDev.json();
                 
+                // Luôn tải thông báo nếu đang ở trang thông báo
                 if(document.getElementById('view-notification').classList.contains('active')) { 
                     const resAll = await fetch(`${API_BASE}/api/notifications`, { credentials: "include" });
                     const allNotis = await resAll.json();
@@ -420,6 +419,8 @@
                 renderSensorPanel(devices); 
                 renderDevelopmentView(devices); 
                 updateBell(dropNotis); 
+                
+                // Luôn cập nhật stats nếu đang ở trang stats
                 if(document.getElementById('view-stats').classList.contains('active')) { renderStatsTable(devices); } 
             } catch (e) { console.error(e); } 
         }
@@ -445,20 +446,16 @@
             let html = '';
             devices.forEach(d => {
                 const isOn = d.status === "ON";
-                
-                // Badge trạng thái
                 const statusBadge = isOn 
                     ? `<span style="color:#27ae60; font-weight:800; background:#e8f5e9; padding:5px 15px; border-radius:20px; display:inline-block; min-width:80px; text-align:center; border: 1px solid #c3e6cb;">BẬT</span>` 
                     : `<span style="color:#c0392b; font-weight:800; background:#fce4ec; padding:5px 15px; border-radius:20px; display:inline-block; min-width:80px; text-align:center; border: 1px solid #f5c6cb;">TẮT</span>`;
                 
-                // Cột 4: HÀNH ĐỘNG (Chỉ chứa Bật/Tắt)
                 const controlHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
                         <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')" title="Bật"><i class="fas fa-power-off"></i></button>
                         <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')" title="Tắt"><i class="far fa-circle"></i></button>
                     </div>`;
 
-                // Cột 5: TƯƠNG TÁC (Chứa Đổi tên/Xóa) - Có hiển thị tên nút rõ ràng
                 const interactHtml = `
                     <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
                         <button class="btn" style="background:#3498db; color:white; padding: 6px 10px; font-size: 0.85em;" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')" title="Đổi tên">
@@ -606,8 +603,6 @@
             if (containerRemote.innerHTML !== htmlRemote) containerRemote.innerHTML = htmlRemote;
         }
 
-        // --- NOTIFICATIONS, DEV VIEW, OTHER UTILS ---
-        
         function updateBell(data) { 
             const unreadCount = data.length;
             const badge = document.getElementById('notify-count'); 
@@ -631,22 +626,8 @@
         async function clearNotifications() { try { await fetch(`${API_BASE}/api/notifications/clear`, { method: "POST" }); document.getElementById('notify-dropdown').classList.remove('show'); updateDashboard(); const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 1500}); Toast.fire({icon: 'success', title: 'Đã xóa thông báo'}); } catch(e) { console.error("Lỗi xóa thông báo"); } }
         function renderNotificationPage(notis) { const tbody = document.getElementById('notify-body'); if (notis.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px">Chưa có dữ liệu</td></tr>'; return; } let html = ""; notis.forEach(n => { let badgeClass = "tag-user"; if (n.user === "System") badgeClass = "tag-sys"; let rowColor = ""; if (n.action.includes("CHỤP") || n.action.includes("PHÁT HIỆN")) rowColor = "background:#fffbf0"; let displayName = n.name; html += `<tr style="${rowColor}"><td style="color:#555">${n.time}</td><td style="font-weight:500">${displayName} <small style="color:#999">#${n.id}</small></td><td style="font-weight:bold">${n.action}</td><td><span class="tag ${badgeClass}">${n.user}</span></td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
 
-        function renderDevelopmentView(devices) { 
-            const tbody = document.getElementById('dev-body'); 
-            let html = ""; 
-            devices.forEach(d => { 
-                const pinDisplay = d.pin ? d.pin : "N/A"; 
-                html += `<tr>
-                    <td><strong>#${d.id}</strong></td>
-                    <td>${d.name}</td>
-                    <td><span class="pin-badge">GPIO ${pinDisplay}</span></td>
-                    <td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td>
-                </tr>`; 
-            }); 
-            if (tbody.innerHTML !== html) tbody.innerHTML = html; 
-        }
+        function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
         
-        // --- HÀM XỬ LÝ NÚT BẤM ---
         function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
         async function handleAddDevice() { const name = document.getElementById('new-dev-name').value; if(!name) return Swal.fire("Lỗi", "Vui lòng nhập tên", "error"); await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); document.getElementById('new-dev-name').value = ""; updateDashboard(); Swal.fire("Thành công", "Đã thêm thiết bị", "success"); }
         async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}, {credentials: "include"}); updateDashboard(); }
@@ -749,9 +730,8 @@
             await checkLogin(); 
             updateDashboard();
             setInterval(() => {
-                if (currentView === "control" || currentView === "notification") {
-                    updateDashboard();
-                }
+                // Update: Cho phép chạy ngầm để cập nhật dữ liệu liên tục
+                updateDashboard();
             }, 1000);
         })();
     </script>
