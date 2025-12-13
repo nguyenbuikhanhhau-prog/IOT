@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* === CSS CƠ BẢN === */
+        /* === CSS CƠ BẢN (GIỮ NGUYÊN) === */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
         .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header-left { display: flex; align-items: center; gap: 15px; }
@@ -30,27 +30,9 @@
         .menu-item i { width: 25px; text-align: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
         .overlay.active { display: block; }
-        
-        /* CSS Căn chỉnh bảng */
-        .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); table-layout: fixed; }
-        .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
-        .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #555; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .iot-table tr:last-child td { border-bottom: none; }
-        
-        /* Badge & Buttons */
-        .badge-on { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; } 
-        .badge-off { color: #c0392b; font-weight: bold; background: #fbecec; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; }
-        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; font-size: 0.9em; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn:active { transform: scale(0.98); }
-        .btn-on { background: #ecf0f1; color: #7f8c8d; } .btn-on.active { background: #2ecc71; color: white; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
-        .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
-        .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
-        .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
-        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
-        
-        /* Notification & Sensor Cards */
         .notify-box { position: relative; cursor: pointer; margin-right: 10px; }
         .notify-icon { font-size: 26px; color: #555; transition: 0.3s; display: inline-block; }
+        .notify-icon:hover { color: #009879; }
         .notify-badge { position: absolute; top: -6px; right: -6px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none; animation: popIn 0.3s; border: 2px solid white; }
         .notify-dropdown { position: absolute; top: 50px; right: 0; width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; z-index: 1000; border: 1px solid #eee; max-height: 450px; overflow-y: auto; }
         .notify-dropdown.show { display: block; animation: fadeIn 0.2s; }
@@ -61,11 +43,6 @@
         .n-row2 { font-size: 0.85em; color: #7f8c8d; display: flex; justify-content: space-between; align-items: center; }
         .n-action { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; text-transform: uppercase; font-weight: bold; }
         .act-on { background: #27ae60; } .act-off { background: #e74c3c; } .act-cam { background: #f39c12; } .act-add { background: #3498db; } .act-del { background: #95a5a6; }
-        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; transition: 0.3s; }
-        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
-        .sensor-row:last-child { border-bottom: none; margin-bottom: 0; }
-        
-        /* Layout */
         .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
         .section-view.active { display: block; }
         .control-layout { display: flex; gap: 30px; align-items: flex-start; }
@@ -75,12 +52,57 @@
         .add-device-group { display: flex; gap: 10px; }
         .input-device-name { padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; flex: 1; }
         .input-device-name:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
-        
-        /* Dev Table */
+        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
+        .btn-add:hover { background: #2980b9; transform: translateY(-1px); }
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; font-size: 0.9em; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-on { background: #ecf0f1; color: #7f8c8d; } .btn-on.active { background: #2ecc71; color: white; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
+        .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
+        .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
+        .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
+        .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); table-layout: fixed; }
+        .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
+        .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #555; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .iot-table tr:last-child td { border-bottom: none; }
+        .cell-actions { display: flex; align-items: center; gap: 8px; justify-content: center; } 
+        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; transition: 0.3s; }
+        .sensor-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
+        .sensor-row:last-child { border-bottom: none; margin-bottom: 0; }
+        .warning-alert { background-color: #fdede9; color: #c0392b; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border-left: 4px solid #e74c3c; }
+        .warning-alert:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .warning-alert .icon { font-size: 24px; color: #e74c3c; }
+        .warning-alert .message { font-weight: 700; text-transform: uppercase; font-size: 0.95em; letter-spacing: 0.5px; }
+        .safe-alert { background-color: #f0fdf4; color: #155724; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; border-left: 4px solid #28a745; }
+        .safe-alert .icon { font-size: 24px; color: #28a745; }
+        .safe-alert .message { font-weight: 600; font-size: 0.95em; }
+        .img-item { display: flex; align-items: center; gap: 15px; margin-top: 8px; cursor: pointer; background: #fff; padding: 8px; border: 1px solid #eee; border-radius: 8px; transition: 0.2s; position: relative; }
+        .img-item:hover { transform: translateX(5px); border-color: #3498db; }
+        .img-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .btn-download { margin-left: auto; border: none; cursor: pointer; background: #f1f1f6; color: #555; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: 1px solid #ddd; }
+        .btn-download:hover { background: #3498db; color: white; border-color: #3498db; }
+        .gallery-container { margin-top: 5px; padding-top: 5px; }
+        .gallery-content { display: none; max-height: 300px; overflow-y: auto; padding-top: 10px; }
+        .gallery-content.open { display: block; }
+        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
+        .no-image-text { color: #7f8c8d; text-align: center; }
+        .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-stream { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
+        .btn-stream-on { background: #2ecc71; }
+        .btn-stream-on:hover { background: #27ae60; }
+        .btn-stream-off { background: #e74c3c; opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-on { opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-off { opacity: 1; pointer-events: auto; background: #e74c3c; }
+        .streaming-active .btn-stream-off:hover { background: #c0392b; }
+        .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
+        .history-content { padding: 20px !important; text-align: left !important; }
+        .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; border-collapse: collapse; }
+        .history-table th, .history-table td { padding: 10px; border: 1px solid #eee; }
+        .badge-on { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; } 
+        .badge-off { color: #c0392b; font-weight: bold; background: #fbecec; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; }
         .dev-table th { background: #8e44ad; } 
         .pin-badge { background: #2c3e50; color: #f1c40f; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; font-size: 0.9em; }
-        
-        /* Other Pages */
         .notify-view-table th { background: #34495e; }
         .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
         .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
@@ -88,23 +110,23 @@
         .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
         .chart-container { position: relative; height: 300px; width: 100%; }
-        .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
-        .history-content { padding: 20px !important; text-align: left !important; }
-        .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; border-collapse: collapse; }
-        .history-table th, .history-table td { padding: 10px; border: 1px solid #eee; }
-        
-        /* Camera */
-        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
-        .no-image-text { color: #7f8c8d; text-align: center; }
-        .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        
-        /* Animations & Media */
+        .stats-main-row { cursor: pointer; transition: 0.2s; }
+        .stats-main-row:hover { background: #f0fdfa; }
+        .stats-detail-row { display: none; background: #fffcf5; }
+        .stats-detail-row.open { display: table-row; }
+        .detail-table { width: 100%; font-size: 0.9em; border: 1px dashed #ddd; margin-top: 10px; background: white; }
+        .detail-table th { background: #f39c12; color: white; padding: 8px; }
+        .detail-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
         @keyframes bell-shake { 0% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-5deg); } 45% { transform: rotate(4deg); } 60% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 900px) { .control-layout { flex-direction: column; } .control-right { width: 100%; } .charts-wrapper { flex-direction: column; } .sidebar { width: 250px; } }
+        @media (max-width: 900px) { 
+            .control-layout { flex-direction: column; } 
+            .control-right { width: 100%; } 
+            .charts-wrapper { flex-direction: column; } 
+            .sidebar { width: 250px; }
+        }
     </style>
 </head>
 <body>
@@ -266,7 +288,18 @@
         <div class="panel-header"><div class="panel-title"><i class="fas fa-chart-line"></i> Dữ liệu cảm biến</div><button class="btn-add" onclick="loadCharts()"><i class="fas fa-sync"></i> Làm mới Biểu đồ</button></div>
         <div class="charts-wrapper"><div class="chart-card" id="card-5m"><div class="chart-title">Chi tiết (5 phút / điểm)</div><div class="chart-container"><canvas id="chart5m"></canvas></div></div><div class="chart-card" id="card-1h"><div class="chart-title">Tổng quan (1 giờ / cột)</div><div class="chart-container"><canvas id="chart1h"></canvas></div></div></div>
         <div class="panel-header" style="margin-top: 30px;"><div class="panel-title"><i class="fas fa-history"></i> Thống kê Thời gian sử dụng</div></div>
-        <table class="iot-table"><thead><tr><th>Thiết bị</th><th>Trạng thái</th><th>Tổng thời gian chạy</th><th>Chi tiết</th></tr></thead><tbody id="stats-body"></tbody></table>
+        
+        <table class="iot-table">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Thiết bị</th>
+                    <th style="width: 20%; text-align:center;">Trạng thái</th>
+                    <th style="width: 30%; text-align:center;">Tổng thời gian chạy</th>
+                    <th style="width: 15%; text-align:center;">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+        </table>
     </div>
 
     <div id="view-notification" class="section-view">
