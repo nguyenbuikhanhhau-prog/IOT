@@ -104,6 +104,50 @@ def index():
     if "user_id" in session:
         return render_template("index.html")
     return render_template("login.html")
+    
+    @app.route("/api/notifications")
+def api_notifications():
+    return jsonify([])
+
+@app.route("/api/notifications/dropdown")
+def api_notifications_dropdown():
+    return jsonify([])
+
+@app.route("/api/notifications/clear", methods=["POST"])
+def clear_notifications():
+    return jsonify({"success": True})
+
+@app.route("/api/devices")
+def api_devices():
+    return jsonify([
+        {
+            "id": 1,
+            "name": "ESP32 Node",
+            "status": "ON",
+            "pin": 26,
+            "temp": latest_device_data.get("temp"),
+            "hum": latest_device_data.get("hum"),
+            "pir": latest_device_data.get("pir"),
+            "temp2": latest_device_data.get("temp2"),
+            "hum2": latest_device_data.get("hum2"),
+            "gas": latest_device_data.get("gas"),
+            "images": [],
+            "total_on_time": 0,
+            "last_on_time": None,
+            "usage_logs": []
+        }
+    ])
+
+@app.route("/api/devices/<int:device_id>/history")
+def device_history(device_id):
+    return jsonify([])
+
+@app.route("/api/stats")
+def api_stats():
+    return jsonify({
+        "chart_5m": [],
+        "chart_1h": []
+    })
 
 @app.route("/api/iot_data", methods=["GET"])
 def get_iot_data():
@@ -256,6 +300,7 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
 
