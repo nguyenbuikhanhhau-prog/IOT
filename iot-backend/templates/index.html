@@ -296,67 +296,131 @@
     <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
 
     <script>
-        const API_BASE = "";
+const API_BASE = ""; 
         const CAM_BASE = "http://localhost:5001";
+
+        // BIẾN TOÀN CỤC
         let currentView = "control";
         let lastSeenImageTime = localStorage.getItem('lastSeenImageTime') || '00:00:00 01/01';
         let isGalleryOpen = false;
-        let lastNotifySignature = ""; let lastViewedTimestamp = 0; let globalNotifications = []; let lastPirState = {}; 
+        let lastNotifySignature = ""; 
+        let lastViewedTimestamp = 0; 
+        let globalNotifications = []; 
+        let lastPirState = {}; 
         let openHistoryIds = new Set(); 
         let openStatsIds = new Set();
-        let chart5m = null; let chart1h = null;
+        let chart5m = null; 
+        let chart1h = null;
 
         // --- MENU LOGIC ---
         function openMenu() { document.getElementById('sidebar').classList.add('active'); document.getElementById('overlay').classList.add('active'); }
         function closeMenu() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('overlay').classList.remove('active'); }
-function switchView(viewName, btn, title) {
-    currentView = viewName; // 🔥 CHỐT VIEW HIỆN TẠI
 
-    document.querySelectorAll('.section-view')
-        .forEach(el => el.classList.remove('active'));
+        function switchView(viewName, btn, title) {
+            currentView = viewName;
 
-    document.getElementById(`view-${viewName}`)
-        .classList.add('active');
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
 
-    document.querySelectorAll('.menu-item')
-        .forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            
+            document.getElementById('page-title').innerText = title;
+            closeMenu();
 
-    btn.classList.add('active');
-    document.getElementById('page-title').innerText = title;
+            // Load dữ liệu tương ứng
+            if (viewName === 'control') updateDashboard();
+            if (viewName === 'account') loadAccountInfo();
+            if (viewName === 'stats') loadCharts();
+            if (viewName !== 'camera') stopStream();
+        }
 
-    closeMenu();
+        // --- AUTHENTICATION CHECK ---
+        async function checkLogin() {
+            try {
+                const res = await fetch("/api/user_status", { credentials: "include" });
+                const data = await res.json();
+                if (!data.logged_in) {
+                    window.location.href = "/"; // Chuyển về login nếu chưa đăng nhập
+                }
+            } catch (e) {
+                window.location.href = "/";
+            }
+        }
 
-    // chỉ load đúng thứ cần
-    if (viewName === 'control') updateDashboard();
-    if (viewName === 'account') loadAccountInfo();
-    if (viewName === 'stats') loadCharts();
-    if (viewName !== 'camera') stopStream();
-}
+        async function handleLogout() {
+            try {
+                await fetch('/logout', { method: 'POST', credentials: 'include' });
+            } finally {
+                window.location.href = '/';
+            }
+        }
 
-async function loadIoTData() {
-    const res = await fetch("/api/iot_data");
-    const json = await res.json();
+        // --- ACCOUNT LOGIC ---
+        async function loadAccountInfo() {
+            try {
+                const res = await fetch(`${API_BASE}/api/user_info`, { credentials: "include" });
+                
+                if (res.status === 200) {
+                    const userInfo = await res.json();
+                    const emailElem = document.getElementById('acc-email');
+                    const idElem = document.getElementById('acc-id');
+                    
+                    if(emailElem) emailElem.innerText = userInfo.email;
+                    if(idElem) idElem.innerText = `#${userInfo.id}`;
+                } else if (res.status === 401) {
+                    window.location.href = '/'; 
+                }
+            } catch (e) {
+                console.error("Lỗi tải thông tin tài khoản:", e);
+            }
+        }
 
-    if (json.success) {
-        document.getElementById("remote-data").innerText =
-            JSON.stringify(json.data, null, 2);
-    }
-}
-setInterval(loadIoTData, 2000);
+        // --- CHANGE PASSWORD LOGIC ---
+        // Chỉ gán sự kiện nếu form tồn tại (Tránh lỗi null)
+        const changePassForm = document.getElementById('change-pass-form');
+        if (changePassForm) {
+            changePassForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const oldPass = document.getElementById('old-pass').value;
+                const newPass = document.getElementById('new-pass').value;
+                const confirmPass = document.getElementById('confirm-pass').value;
+
+                if (newPass.length < 6) return Swal.fire("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự.", "error");
+                if (newPass !== confirmPass) return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp.", "error");
+
+                try {
+                    const response = await fetch('/change_password', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+                    });
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        Swal.fire("Thành công!", result.message, "success");
+                        changePassForm.reset();
+                    } else {
+                        Swal.fire("Thất bại", result.message, "error");
+                    }
+                } catch (error) {
+                    Swal.fire("Lỗi kết nối", "Không thể kết nối server.", "error");
+                }
+            });
+        }
 
         // --- CORE UPDATE FUNCTION ---
         async function updateDashboard() { 
-                if (currentView !== "control") return;
+            if (currentView !== "control" && currentView !== "notification") return;
             try { 
-const resDev = await fetch(`${API_BASE}/api/devices`, {
-    credentials: "include" // 🔥 BẮT BUỘC
-});
-                const devices = await resDev.json(); 
+                const resDev = await fetch(`${API_BASE}/api/devices`, { credentials: "include" });
+                const devices = await resDev.json();
                 
                 if(document.getElementById('view-notification').classList.contains('active')) { 
-                    const resAll = await fetch(`${API_BASE}/api/notifications`, { credentials: "include" }); 
+                    const resAll = await fetch(`${API_BASE}/api/notifications`, { credentials: "include" });
                     const allNotis = await resAll.json();
-                    renderNotificationPage(allNotis); 
+                    renderNotificationPage(allNotis);
                 } 
 
                 const resDrop = await fetch(`${API_BASE}/api/notifications/dropdown`, { credentials: "include" });
@@ -682,20 +746,34 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
     }
 }
 (async () => {
-    await checkLogin();   // 🔐 CHẶN TRƯỚC
-    updateDashboard();
-   setInterval(() => {
-    if (currentView === "control") {
-        updateDashboard();
-    }
-}, 1000);
+            await checkLogin();   // Kiểm tra đăng nhập trước
+            updateDashboard();
+            setInterval(() => {
+                if (currentView === "control" || currentView === "notification") {
+                    updateDashboard();
+                }
+            }, 1000);
+        })();
 
-})();
-
+        // Global Click Event (Close Menu/Dropdown)
+        window.onclick = function(event) { 
+            if (!event.target.closest('.notify-box') && !event.target.closest('.notify-dropdown')) { 
+                const dd = document.getElementById('notify-dropdown');
+                if (dd && dd.classList.contains('show')) {
+                    dd.classList.remove('show'); 
+                    if (globalNotifications.length > 0) { lastViewedTimestamp = globalNotifications[0].ts; }
+                    updateDashboard(); 
+                }
+            } 
+            if (!event.target.closest('.sidebar') && !event.target.closest('.menu-btn') && document.getElementById('sidebar').classList.contains('active')) {
+                closeMenu();
+            }
+        } 
     </script>
 </body>
 
 </html>
+
 
 
 
