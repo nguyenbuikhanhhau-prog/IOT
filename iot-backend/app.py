@@ -22,16 +22,18 @@ MQTT_USER = os.getenv("MQTT_USER")
 MQTT_PASS = os.getenv("MQTT_PASS")
 MQTT_TOPIC = "iot/devices/state"
 MQTT_CONTROL_TOPIC = "iot/control"
+MQTT_CAPTURE_TOPIC = "iot/devices/capture"
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 EMAIL_USER = os.getenv("EMAIL_USER")
+CAMERA_SERVICE_URL = "http://localhost:5001"
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "iot-secret-key")
 app.permanent_session_lifetime = timedelta(hours=2)
 CORS(app)
 bcrypt = Bcrypt(app)
-CAMERA_SERVICE_URL = "http://localhost:5001"
+
 # ===============================
 # QUẢN LÝ KHO CHÂN GPIO
 # ===============================
@@ -70,51 +72,10 @@ users = [
 ]
 notifications = []
 dropdown_last_clear = 0
-latest_device_data = {}
-# Tìm hàm process_camera_capture cũ và THAY THẾ bằng đoạn này:
-def process_camera_capture(trigger_source="AUTO"):
-    try:
-        # 1. Gọi sang Service Camera (Port 5001) để lấy ảnh
-        # timeout=3 để nếu camera lỗi thì không treo backend
-        response = requests.get(f"{CAMERA_SERVICE_URL}/snapshot", timeout=3)
+latest_device_data = {} # Dữ liệu cảm biến mới nhất
+sensor_state = {"images": []} # Riêng cho ảnh camera
+last_trigger_time = 0 # Chống spam chụp ảnh
 
-        if response.status_code == 200:
-            # 2. Nếu chụp thành công -> Lưu dữ liệu ảnh vào file
-            filename = f"capture_{int(time.time())}.jpg"
-            # Đảm bảo thư mục tồn tại: static/captures
-            save_path = os.path.join("static", "captures", filename)
-
-            # Tạo thư mục nếu chưa có
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-            with open(save_path, 'wb') as f:
-                f.write(response.content) # Ghi dữ liệu nhị phân (ảnh)
-
-            # 3. Cập nhật vào danh sách hiển thị
-            timestamp = datetime.now().strftime("%H:%M:%S %d/%m")
-            sensor_state["images"].insert(0, {
-                "filename": f"captures/{filename}", 
-                "time": timestamp
-            })
-
-            # Xóa bớt nếu quá 10 ảnh
-            if len(sensor_state["images"]) > 10:
-                old_img = sensor_state["images"].pop()
-                try: os.remove(os.path.join("static", old_img["filename"]))
-                except: pass
-
-            # 4. Gửi thông báo
-            msg = "PHÁT HIỆN NGƯỜI (Đã chụp ảnh)" if trigger_source == "AUTO" else "Đã chụp ảnh thủ công"
-            add_notification("Camera AI", msg, "System" if trigger_source == "AUTO" else "User")
-            print(f"📸 Đã lưu ảnh từ Camera Service: {filename}")
-
-        elif response.status_code == 409:
-            print("⚠️ Camera đang bận Stream, không thể chụp ảnh.")
-            add_notification("Camera AI", "Phát hiện người (Camera đang bận stream)", "System")
-
-    except Exception as e:
-        print(f"❌ Lỗi kết nối tới Camera Service: {e}")
-        add_notification("Hệ thống", "Mất kết nối Camera", "Lỗi")
 def add_notification(name, action, user="System"):
     ts_str = datetime.now().strftime("%H:%M:%S %d/%m")
     notifications.insert(0, {
@@ -125,54 +86,91 @@ def add_notification(name, action, user="System"):
         "user": user,
         "ts": time.time()
     })
-    if len(notifications) > 100: notifications.pop() # Lưu 100 thông báo gần nhất
+    if len(notifications) > 100: notifications.pop()
 
 # ===============================
-# MQTT HANDLERS
+# HÀM CHỤP ẢNH TỪ SERVICE
+# ===============================
+def process_camera_capture(trigger_source="AUTO"):
+    try:
+        response = requests.get(f"{CAMERA_SERVICE_URL}/snapshot", timeout=3)
+        if response.status_code == 200:
+            filename = f"capture_{int(time.time())}.jpg"
+            save_path = os.path.join("static", "captures", filename)
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            
+            with open(save_path, 'wb') as f: f.write(response.content)
+            
+            timestamp = datetime.now().strftime("%H:%M:%S %d/%m")
+            sensor_state["images"].insert(0, {"filename": f"captures/{filename}", "time": timestamp})
+            
+            if len(sensor_state["images"]) > 10:
+                old = sensor_state["images"].pop()
+                try: os.remove(os.path.join("static", old["filename"]))
+                except: pass
+
+            msg = "PHÁT HIỆN NGƯỜI (Đã chụp ảnh)" if trigger_source == "AUTO" else "Đã chụp ảnh thủ công"
+            add_notification("Camera AI", msg, "System" if trigger_source == "AUTO" else "User")
+            print(f"📸 Đã lưu ảnh: {filename}")
+            
+    except Exception as e:
+        print(f"❌ Lỗi Camera: {e}")
+
+# ===============================
+# MQTT HANDLERS (ĐÃ SỬA LOGIC NHẬN PIR)
 # ===============================
 def on_connect(client, userdata, flags, rc):
     print("🔌 MQTT connected:", rc)
-    client.subscribe(MQTT_TOPIC)
+    client.subscribe([(MQTT_TOPIC, 0), (MQTT_CAPTURE_TOPIC, 0)])
 
 def on_message(client, userdata, msg):
-    global latest_device_data
+    global latest_device_data, last_trigger_time
     try:
         payload = msg.payload.decode()
-        data = json.loads(payload)
-        latest_device_data = data
+        
+        # 1. Xử lý lệnh chụp ảnh chủ động (nếu ESP32 gửi topic capture)
+        if msg.topic == MQTT_CAPTURE_TOPIC:
+            if time.time() - last_trigger_time > 5:
+                print("🚨 ESP32 Trigger: Chụp ảnh!")
+                threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
+                last_trigger_time = time.time()
+            return
+
+        # 2. Xử lý dữ liệu cảm biến (Topic state)
+        if msg.topic == MQTT_TOPIC:
+            data = json.loads(payload)
+            
+            # --- QUAN TRỌNG: Dùng update để không mất dữ liệu cũ ---
+            latest_device_data.update(data)
+            
+            # --- LOGIC PHÁT HIỆN NGƯỜI TỪ CHÂN 35 ---
+            # ESP32 gửi lên: {"pir": 1} hoặc {"pir": 0}
+            if "pir" in data:
+                pir_val = int(data["pir"])
+                # In ra để debug xem server có nhận được không
+                if pir_val == 1:
+                    print(f"🔥 [PIR DETECTED] Có người! (Data: {data})")
+                    
+                    # Tự động chụp ảnh nếu có người (giới hạn 5s/lần)
+                    if time.time() - last_trigger_time > 5:
+                        threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
+                        last_trigger_time = time.time()
+                        
     except Exception as e:
-        print("❌ MQTT parse error:", e)
+        print("❌ MQTT Error:", e)
 
 # ===============================
 # API ROUTES
 # ===============================
-
 @app.route("/api/devices", methods=["POST"])
 def add_device():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    
-    if not SAFE_GPIO_POOL:
-        return jsonify({"success": False, "message": "Hết chân GPIO khả dụng!"}), 400
-        
+    if not SAFE_GPIO_POOL: return jsonify({"success": False, "message": "Hết chân GPIO!"}), 400
     data = request.json
     name = data.get("name", "Thiết bị mới")
     assigned_pin = SAFE_GPIO_POOL.pop(0) 
-    
-    # ID tăng dần
-    if output_devices:
-        new_id = max(d["id"] for d in output_devices) + 1
-    else:
-        new_id = 1
-    
-    new_device = {
-        "id": new_id,
-        "name": name,
-        "pin": assigned_pin,
-        "status": "OFF",
-        "last_on_time": None,
-        "total_on_time": 0,
-        "usage_logs": []
-    }
+    new_id = max(d["id"] for d in output_devices) + 1 if output_devices else 1
+    new_device = {"id": new_id, "name": name, "pin": assigned_pin, "status": "OFF", "last_on_time": None, "total_on_time": 0, "usage_logs": []}
     output_devices.append(new_device)
     add_notification(name, f"ĐÃ THÊM (PIN {assigned_pin})", session.get("email"))
     return jsonify({"success": True, "device": new_device})
@@ -182,7 +180,6 @@ def delete_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     global output_devices 
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
-    
     if dev:
         SAFE_GPIO_POOL.append(dev["pin"])
         SAFE_GPIO_POOL.sort() 
@@ -196,12 +193,11 @@ def delete_device(dev_id):
 def rename_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     data = request.json
-    new_name = data.get("name")
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
-    if dev and new_name:
-        old_name = dev["name"]
-        dev["name"] = new_name
-        add_notification(old_name, f"ĐỔI TÊN THÀNH: {new_name}", session.get("email"))
+    if dev:
+        old = dev["name"]
+        dev["name"] = data.get("name")
+        add_notification(old, f"ĐỔI TÊN -> {dev['name']}", session.get("email"))
         return jsonify({"success": True})
     return jsonify({"success": False}), 400
 
@@ -209,8 +205,10 @@ def rename_device(dev_id):
 def get_devices_list():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     resp = json.loads(json.dumps(output_devices))
-    if latest_device_data and len(resp) > 0:
-        resp[0].update(latest_device_data)
+    # Gắn dữ liệu cảm biến vào thiết bị đầu tiên
+    if len(resp) > 0:
+        if latest_device_data: resp[0].update(latest_device_data)
+        if sensor_state["images"]: resp[0]["images"] = sensor_state["images"]
     return jsonify(resp)
 
 @app.route("/api/devices/<int:dev_id>/<action>", methods=["POST"])
@@ -218,24 +216,17 @@ def control_device(dev_id, action):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     action = action.upper()
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
-    
     if dev:
         dev["status"] = action
         mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": action}))
-        
-        # Logic tính thời gian
-        if action == "ON":
-            dev["last_on_time"] = time.time()
+        if action == "ON": dev["last_on_time"] = time.time()
         elif action == "OFF" and dev["last_on_time"]:
             dur = time.time() - dev["last_on_time"]
             dev["total_on_time"] += dur
-            dev["usage_logs"].insert(0, {
-                "start": datetime.fromtimestamp(dev["last_on_time"]).strftime("%H:%M:%S %d/%m"),
-                "end": datetime.now().strftime("%H:%M:%S %d/%m"),
-                "duration": dur
-            })
+            h, rem = divmod(dur, 3600)
+            m, s = divmod(rem, 60)
+            dev["usage_logs"].insert(0, {"start": datetime.fromtimestamp(dev["last_on_time"]).strftime("%H:%M:%S"), "end": datetime.now().strftime("%H:%M:%S"), "duration": dur, "duration_str": f"{int(h)}h {int(m)}m {int(s)}s"})
             dev["last_on_time"] = None
-            
         add_notification(dev["name"], action, session.get("email"))
         return jsonify({"success": True})
     return jsonify({"success": False}), 404
@@ -250,23 +241,17 @@ def index():
 def get_device_history(dev_id):
     if "user_id" not in session: return jsonify([]), 401
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
-    if not dev: return jsonify([])
-    # Lọc lịch sử từ danh sách notification
-    device_history = [n for n in notifications if n['name'] == dev['name']]
-    return jsonify(device_history)
+    return jsonify([n for n in notifications if dev and n['name'] == dev['name']])
 
 @app.route("/api/notifications", methods=["GET"])
 def api_notifications():
     if "user_id" not in session: return jsonify([]), 401
-    # Trả về TOÀN BỘ thông báo (để hiển thị ở trang Nhật ký hệ thống)
     return jsonify(notifications)
 
 @app.route("/api/notifications/dropdown", methods=["GET"])
 def get_dropdown_notif():
     if "user_id" not in session: return jsonify([]), 401
-    # Chỉ trả về thông báo MỚI (để hiển thị ở cái chuông)
-    filtered = [n for n in notifications if n.get('ts', 0) > dropdown_last_clear]
-    return jsonify(filtered)
+    return jsonify([n for n in notifications if n.get('ts', 0) > dropdown_last_clear])
 
 @app.route("/api/notifications/clear", methods=["POST"])
 def clear_dropdown():
@@ -275,80 +260,56 @@ def clear_dropdown():
     return jsonify({"success": True})
 
 @app.route("/api/stats")
-def api_stats():
-    # Phần biểu đồ tạm để trống, logic này cần DB phức tạp hơn
-    return jsonify({"chart_5m": [], "chart_1h": []})
+def api_stats(): return jsonify({"chart_5m": [], "chart_1h": []})
 
-@app.route("/register", methods=["POST"])
-def register():
-    data = request.json
-    users.append({"id": len(users)+1, "email": data["email"], "password": bcrypt.generate_password_hash(data["password"]).decode("utf-8")})
+@app.route("/api/capture", methods=['POST'])
+def manual_capture():
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    threading.Thread(target=process_camera_capture, args=("MANUAL",)).start()
     return jsonify({"success": True})
 
+# AUTH
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
     user = next((u for u in users if u["email"] == data["email"]), None)
     if user and bcrypt.check_password_hash(user["password"], data["password"]):
-        session["user_id"] = user["id"]
-        session["email"] = user["email"]
+        session["user_id"], session["email"] = user["id"], user["email"]
         return jsonify({"success": True})
     return jsonify({"success": False}), 401
 
 @app.route("/logout", methods=["POST"])
-def logout():
-    session.clear()
-    return jsonify({"success": True})
+def logout(): session.clear(); return jsonify({"success": True})
 
 @app.route("/api/user_status")
-def user_status():
-    if "user_id" in session: return jsonify({"logged_in": True, "email": session["email"]})
-    return jsonify({"logged_in": False})
+def user_status(): return jsonify({"logged_in": "user_id" in session, "email": session.get("email")})
 
 @app.route("/api/user_info", methods=["GET"])
 def get_user_info():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    user = next((u for u in users if u["id"] == session["user_id"]), None)
-    return jsonify({"id": user["id"], "email": user["email"]}) if user else (jsonify({"error": "Not found"}), 404)
+    return jsonify({"id": session["user_id"], "email": session["email"]})
 
 @app.route("/change_password", methods=["POST"])
 def change_password():
     if "user_id" not in session: return jsonify({"success": False}), 403
     data = request.json
-    old_pw = data.get("old_password")
-    new_pw = data.get("new_password")
     user = next((u for u in users if u["id"] == session["user_id"]), None)
-    if not bcrypt.check_password_hash(user["password"], old_pw):
-        return jsonify({"success": False, "message": "Sai mật khẩu cũ"}), 400
-    user["password"] = bcrypt.generate_password_hash(new_pw).decode("utf-8")
+    if not bcrypt.check_password_hash(user["password"], data.get("old_password")): return jsonify({"success": False}), 400
+    user["password"] = bcrypt.generate_password_hash(data.get("new_password")).decode("utf-8")
     return jsonify({"success": True})
 
-# ===============================
-# RUN MQTT & APP
-# ===============================
+# RUN
 mqtt_client = mqtt.Client()
-
 def run_mqtt():
-    mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
-    mqtt_client.tls_set()
-    mqtt_client.on_connect = on_connect
-    mqtt_client.on_message = on_message
+    mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS); mqtt_client.tls_set()
+    mqtt_client.on_connect = on_connect; mqtt_client.on_message = on_message
     while True:
-        try:
-            print("🔄 Connecting MQTT...")
-            mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
-            mqtt_client.loop_forever()
-        except Exception as e:
-            print(f"⚠️ MQTT Error: {e}")
-            time.sleep(5)
+        try: mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60); mqtt_client.loop_forever()
+        except: time.sleep(5)
 
 threading.Thread(target=run_mqtt, daemon=True).start()
-
-# Tạo user mặc định
-hashed_password = bcrypt.generate_password_hash("admin").decode('utf-8')
 if not any(u['email'] == "admin@iot.com" for u in users):
-    users.append({"id": 1, "email": "admin@iot.com", "password": hashed_password})
+    users.append({"id": 1, "email": "admin@iot.com", "password": bcrypt.generate_password_hash("admin").decode('utf-8')})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
-
