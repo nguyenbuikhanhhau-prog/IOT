@@ -105,7 +105,7 @@ def index():
         return render_template("index.html")
     return render_template("login.html")
     
-    @app.route("/api/notifications")
+@app.route("/api/notifications")
 def api_notifications():
     return jsonify([])
 
@@ -300,6 +300,7 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
 
