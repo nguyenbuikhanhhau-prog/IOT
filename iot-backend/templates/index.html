@@ -436,41 +436,39 @@ const API_BASE = "";
         }
 
         // --- RENDER CONTROL VIEW ---
-        function renderControlView(devices) {
-            const tbody = document.getElementById('control-body');
+function renderControlView(devices) {
+    const tbody = document.getElementById('control-body');
             if (devices.length === 0) { if(!tbody.innerHTML.includes("Chưa có thiết bị")) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#999">Chưa có thiết bị</td></tr>'; return; }
             
             const newIds = devices.map(d => d.id);
             Array.from(tbody.getElementsByClassName('device-row')).forEach(row => { const rid = parseInt(row.getAttribute('data-id')); if (!newIds.includes(rid)) { row.remove(); document.getElementById(`history-${rid}`)?.remove(); } });
 
-            devices.forEach(d => {
-                const isOn = d.status === "ON";
-                const statusBadge = isOn ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 10px; border-radius:15px">BẬT</span>` : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 10px; border-radius:15px">TẮT</span>`;
-                let row = document.getElementById(`row-${d.id}`); 
-                let histRow = document.getElementById(`history-${d.id}`);
+let html = '';
+    devices.forEach(d => {
+        const isOn = d.status === "ON";
+        const statusBadge = isOn 
+            ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 10px; border-radius:15px">BẬT</span>` 
+            : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 10px; border-radius:15px">TẮT</span>`;
+        
+        // --- PHẦN MỚI: Thêm nút Sửa và Xóa ---
+        const actionsHtml = `
+            <div style="display: flex; align-items: center; gap: 5px; justify-content: flex-end;">
+                <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button>
+                <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button>
                 
-                let deleteBtn = `<button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})"><i class="fas fa-trash"></i></button>`;
-                if (d.id === 1) deleteBtn = ''; 
-
-                const actionsHtml = `<button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button><button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button><div style="margin-left:auto; display:flex; gap:5px;">${deleteBtn}</div>`;
+                <button class="btn" style="background:#3498db; padding: 8px 12px;" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')" title="Đổi tên">
+                    <i class="fas fa-edit"></i>
+                </button>
                 
-                if (!row) {
-                    const tr = document.createElement("tr"); tr.className = "device-row"; tr.id = `row-${d.id}`; tr.setAttribute('data-id', d.id); tr.onclick = () => toggleHistory(d.id);
-                    tr.innerHTML = `<td><strong>#${d.id}</strong></td><td class="cell-name" style="font-weight:500; cursor:pointer">${d.name}</td><td class="cell-status">${statusBadge}</td><td class="cell-actions">${actionsHtml}</td>`;
-                    tbody.appendChild(tr);
-                    histRow = document.createElement("tr"); histRow.className = "history-row"; histRow.id = `history-${d.id}`; histRow.innerHTML = `<td colspan="4" class="history-content"><div id="hist-data-${d.id}"></div></td>`; tbody.appendChild(histRow);
-                } else {
-                    updateHTML(row.querySelector('.cell-name'), d.name); updateHTML(row.querySelector('.cell-status'), statusBadge); updateHTML(row.querySelector('.cell-actions'), actionsHtml);
-                    if (!histRow) { histRow = document.createElement("tr"); histRow.className = "history-row"; histRow.id = `history-${d.id}`; histRow.innerHTML = `<td colspan="4" class="history-content"><div id="hist-data-${d.id}"></div></td>`; row.parentNode.insertBefore(histRow, row.nextSibling); }
-                }
-                
-                if (openHistoryIds.has(d.id)) { 
-                    if (!histRow.classList.contains('open')) histRow.classList.add('open'); 
-                    fetchHistory(d.id); 
-                } else { 
-                    if (histRow.classList.contains('open')) histRow.classList.remove('open'); 
-                }
-            });
+                <button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})" title="Xóa thiết bị">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>`;
+    });
+    
+    // Cập nhật lại HTML nếu có thay đổi để tránh flicker
+    if (tbody.innerHTML !== html) tbody.innerHTML = html;
+});
         }
 
         async function fetchHistory(id) { 
@@ -769,10 +767,74 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
                 closeMenu();
             }
         } 
+        // --- HÀM XỬ LÝ XÓA THIẾT BỊ ---
+function deleteDevice(id) {
+    Swal.fire({
+        title: 'Bạn chắc chắn?',
+        text: "Thiết bị sẽ bị xóa vĩnh viễn và GPIO sẽ được thu hồi!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Xóa ngay!',
+        cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`${API_BASE}/api/devices/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    Swal.fire('Đã xóa!', 'Thiết bị đã được gỡ bỏ.', 'success');
+                    updateDashboard(); // Load lại danh sách
+                } else {
+                    Swal.fire('Lỗi', data.message, 'error');
+                }
+            } catch (e) {
+                Swal.fire('Lỗi kết nối', '', 'error');
+            }
+        }
+    })
+}
+
+// --- HÀM XỬ LÝ ĐỔI TÊN THIẾT BỊ ---
+async function renameDevice(id, oldName) {
+    const { value: newName } = await Swal.fire({
+        title: 'Đổi tên thiết bị',
+        input: 'text',
+        inputLabel: 'Nhập tên mới',
+        inputValue: oldName,
+        showCancelButton: true,
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn chưa nhập tên mới!'
+            }
+        }
+    })
+
+    if (newName) {
+        try {
+            const res = await fetch(`${API_BASE}/api/devices/${id}/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire('Thành công', 'Tên thiết bị đã được cập nhật', 'success');
+                updateDashboard();
+            } else {
+                Swal.fire('Lỗi', data.message, 'error');
+            }
+        } catch (e) {
+            Swal.fire('Lỗi kết nối', '', 'error');
+        }
+    }
+}
     </script>
 </body>
 
 </html>
+
 
 
 
