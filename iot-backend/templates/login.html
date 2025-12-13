@@ -347,7 +347,9 @@
         statusMessage.style.display = "block";
     }
 });
-        forgotForm.addEventListener("submit", async (e) => {
+        // --- Thay thế đoạn này vào chỗ forgotForm cũ ---
+
+forgotForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const email = document.getElementById("forgot-email").value;
@@ -361,24 +363,28 @@
 
         const data = await res.json();
 
-if (data.success) {
-    statusMessage.className = "message success";
-    statusMessage.innerHTML = `
-        ${data.message || "Nếu email tồn tại, mật khẩu mới đã được gửi."}
-        <br><small>⚠️ Nếu không thấy email, hãy kiểm tra <b>Thư rác / Spam</b>.</small>
-    `;
-    statusMessage.style.display = "block";
-}
-
+        // Kiểm tra kết quả trả về từ server
+        if (data.success) {
             statusMessage.className = "message success";
-            statusMessage.innerText = data.message || "Nếu email tồn tại, mật khẩu mới đã được gửi.";
+            statusMessage.innerHTML = `
+                ${data.message || "Mật khẩu mới đã được gửi."}
+                <br><small>⚠️ Nếu không thấy email, hãy kiểm tra <b>Thư rác / Spam</b>.</small>
+            `;
         } else {
             statusMessage.className = "message error";
             statusMessage.innerText = data.message || "Có lỗi xảy ra.";
         }
+        
+        // Hiển thị thông báo lên màn hình
         statusMessage.style.display = "block";
 
     } catch (err) {
+        statusMessage.className = "message error";
+        statusMessage.innerText = "Không kết nối được server.";
+        statusMessage.style.display = "block";
+    }
+});
+        catch (err) {
         statusMessage.className = "message error";
         statusMessage.innerText = "Không kết nối được server.";
         statusMessage.style.display = "block";
@@ -388,6 +394,7 @@ if (data.success) {
 </body>
 
 </html>
+
 
 
 
