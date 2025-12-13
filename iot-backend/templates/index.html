@@ -9,16 +9,22 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* === CSS GIỮ NGUYÊN === */
+        /* === CSS CƠ BẢN === */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
-        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; }
+        
+        /* HEADER */
+        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header-left { display: flex; align-items: center; gap: 15px; }
-        .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; }
+        .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .header i.logo { font-size: 28px; color: #009879; }
+        
+        /* TOOLBAR */
         .toolbar { background: #2c3e50; color: white; padding: 10px 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .menu-btn { font-size: 20px; cursor: pointer; color: white; padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .menu-btn:hover { background: rgba(255,255,255,0.1); }
-        .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #555; padding-left: 15px; }
+        .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #7f8c8d; padding-left: 15px; }
+        
+        /* SIDEBAR */
         .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #1a252f; color: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
         .sidebar.active { left: 0; }
         .sidebar-header { padding: 20px; background: #009879; font-weight: bold; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -30,6 +36,8 @@
         .menu-item i { width: 25px; text-align: center; }
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
         .overlay.active { display: block; }
+        
+        /* NOTIFICATIONS */
         .notify-box { position: relative; cursor: pointer; margin-right: 10px; }
         .notify-icon { font-size: 26px; color: #555; transition: 0.3s; display: inline-block; }
         .notify-icon:hover { color: #009879; }
@@ -43,38 +51,51 @@
         .n-row2 { font-size: 0.85em; color: #7f8c8d; display: flex; justify-content: space-between; align-items: center; }
         .n-action { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; text-transform: uppercase; font-weight: bold; }
         .act-on { background: #27ae60; } .act-off { background: #e74c3c; } .act-cam { background: #f39c12; } .act-add { background: #3498db; } .act-del { background: #95a5a6; }
+        
+        /* LAYOUT & PANELS */
         .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
         .section-view.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .control-layout { display: flex; gap: 30px; align-items: flex-start; }
         .control-left { flex: 3; } .control-right { flex: 1; min-width: 350px; }
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .panel-title { font-size: 20px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
         .add-device-group { display: flex; gap: 10px; }
-        .input-device-name { padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; }
+        .input-device-name { padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; flex: 1; }
         .input-device-name:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
-        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-        .btn-add:hover { background: #2980b9; }
-        .iot-table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.9em; }
-        .iot-table td { padding: 15px; border-bottom: 1px solid #eee; color: #555; }
-        .cell-actions { display: flex; justify-content: flex-end; align-items: center; gap: 5px; }
-        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; }
+        
+        /* BUTTONS */
+        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
+        .btn-add:hover { background: #2980b9; transform: translateY(-1px); }
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; font-size: 0.9em; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn:active { transform: scale(0.98); }
         .btn-on { background: #ecf0f1; color: #7f8c8d; } .btn-on.active { background: #2ecc71; color: white; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
         .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
         .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
         .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
-        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; }
-        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.1em; padding-bottom: 5px; }
-        .warning-alert { background-color: #fdede9; color: #c0392b; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
+        
+        /* TABLE */
+        .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
+        .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #555; vertical-align: middle; }
+        .iot-table tr:last-child td { border-bottom: none; }
+        .cell-actions { display: flex; align-items: center; gap: 8px; justify-content: center; } /* Căn giữa các nút hành động */
+        
+        /* CARDS & SENSORS */
+        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; transition: 0.3s; }
+        .sensor-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
+        .sensor-row:last-child { border-bottom: none; margin-bottom: 0; }
+        
+        /* ALERTS */
+        .warning-alert { background-color: #fdede9; color: #c0392b; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border-left: 4px solid #e74c3c; }
         .warning-alert:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .warning-alert .icon { font-size: 24px; color: #e74c3c; }
         .warning-alert .message { font-weight: 700; text-transform: uppercase; font-size: 0.95em; letter-spacing: 0.5px; }
-        .safe-alert { background-color: #f0fdf4; color: #155724; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; }
+        .safe-alert { background-color: #f0fdf4; color: #155724; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; border-left: 4px solid #28a745; }
         .safe-alert .icon { font-size: 24px; color: #28a745; }
         .safe-alert .message { font-weight: 600; font-size: 0.95em; }
+        
+        /* CAMERA & IMAGES */
         .img-item { display: flex; align-items: center; gap: 15px; margin-top: 8px; cursor: pointer; background: #fff; padding: 8px; border: 1px solid #eee; border-radius: 8px; transition: 0.2s; position: relative; }
         .img-item:hover { transform: translateX(5px); border-color: #3498db; }
         .img-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; }
@@ -83,14 +104,36 @@
         .gallery-container { margin-top: 5px; padding-top: 5px; }
         .gallery-content { display: none; max-height: 300px; overflow-y: auto; padding-top: 10px; }
         .gallery-content.open { display: block; }
+        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
+        .no-image-text { color: #7f8c8d; text-align: center; }
+        .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-stream { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
+        .btn-stream-on { background: #2ecc71; }
+        .btn-stream-on:hover { background: #27ae60; }
+        .btn-stream-off { background: #e74c3c; opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-on { opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-off { opacity: 1; pointer-events: auto; background: #e74c3c; }
+        .streaming-active .btn-stream-off:hover { background: #c0392b; }
+        
+        /* HISTORY & DETAIL TABLES */
         .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
         .history-content { padding: 20px !important; text-align: left !important; }
-        .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; }
-        .badge-on { color: green; font-weight: bold; } .badge-off { color: red; font-weight: bold; }
-        .dev-table th { background: #8e44ad; } .pin-badge { background: #2c3e50; color: #f1c40f; padding: 5px 10px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; font-size: 0.9em; }
+        .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; border-collapse: collapse; }
+        .history-table th, .history-table td { padding: 10px; border: 1px solid #eee; }
+        .badge-on { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; } 
+        .badge-off { color: #c0392b; font-weight: bold; background: #fbecec; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; }
+        
+        /* DEV PAGE */
+        .dev-table th { background: #8e44ad; } 
+        .pin-badge { background: #2c3e50; color: #f1c40f; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; font-size: 0.9em; }
+        
+        /* NOTIFICATION PAGE */
         .notify-view-table th { background: #34495e; }
         .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
         .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
+        
+        /* STATS PAGE */
         .charts-wrapper { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
         .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
@@ -102,19 +145,20 @@
         .detail-table { width: 100%; font-size: 0.9em; border: 1px dashed #ddd; margin-top: 10px; background: white; }
         .detail-table th { background: #f39c12; color: white; padding: 8px; }
         .detail-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; }
-        .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
-        .no-image-text { color: #7f8c8d; text-align: center; }
-        .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .btn-stream { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
-        .btn-stream-on { background: #2ecc71; }
-        .btn-stream-on:hover { background: #27ae60; }
-        .btn-stream-off { background: #e74c3c; opacity: 0.5; pointer-events: none; }
-        .streaming-active .btn-stream-on { opacity: 0.5; pointer-events: none; }
-        .streaming-active .btn-stream-off { opacity: 1; pointer-events: auto; background: #e74c3c; }
-        .streaming-active .btn-stream-off:hover { background: #c0392b; }
+
+        /* ANIMATION */
         @keyframes bell-shake { 0% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-5deg); } 45% { transform: rotate(4deg); } 60% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
-        @media (max-width: 900px) { .control-layout { flex-direction: column; } .control-right { width: 100%; } .charts-wrapper { flex-direction: column; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) { 
+            .control-layout { flex-direction: column; } 
+            .control-right { width: 100%; } 
+            .charts-wrapper { flex-direction: column; } 
+            .sidebar { width: 250px; }
+        }
     </style>
 </head>
 <body>
@@ -135,73 +179,10 @@
         </div>
     </div>
 
-        <div class="toolbar">
+    <div class="toolbar">
         <div class="menu-btn" onclick="openMenu()"><i class="fas fa-bars"></i> Menu</div>
         <span class="current-view-title" id="page-title">Bảng điều khiển</span>
     </div>
-
-    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
-    
-<div id="view-account" class="section-view">
-    <div class="control-layout" style="display: flex; 
-                                       flex-direction: row; 
-                                       gap: 30px; 
-                                       width: 100%; /* Chiếm trọn chiều ngang */
-                                       margin: 20px 0; 
-                                       align-items: flex-start;">
-        
-        <div style="flex: 1;">
-            <div class="panel-header"><div class="panel-title" style="color: #009879;"><i class="fas fa-id-badge"></i> Thông tin tài khoản</div></div>
-            <div class="sensor-card" style="border-top: 4px solid #009879; padding: 25px; height: 100%;">
-                <div class="sensor-row" style="font-size: 1.1em; padding-bottom: 15px;">
-                    <span><i class="fas fa-envelope" style="color: #3498db;"></i> Email đăng nhập:</span>
-                    <span style="font-weight:bold; color: #2c3e50;" id="acc-email">Đang tải...</span>
-                </div>
-                <div class="sensor-row" style="font-size: 1.1em; padding-bottom: 15px;">
-                    <span><i class="fas fa-id-card" style="color: #7f8c8d;"></i> Mã người dùng (ID):</span>
-                    <span style="font-weight:bold" id="acc-id">--</span>
-                </div>
-                <div class="sensor-row" style="font-size: 1.1em; border-bottom: none;">
-                    <span><i class="fas fa-user-tag" style="color: #2ecc71;"></i> Vai trò:</span>
-                    <span style="font-weight:bold; color:green">Admin (Mockup)</span>
-                </div>
-                
-                <button class="btn btn-off" style="width:100%; margin-top:30px; 
-                                                  background:#e74c3c; color:white; 
-                                                  font-size: 1.1em; padding: 12px;
-                                                  border-radius: 6px; box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);" 
-                        onclick="handleLogout()">Đăng xuất <i class="fas fa-sign-out-alt"></i></button>
-            </div>
-        </div>
-        
-        <div style="flex: 1;">
-            <div class="panel-header"><div class="panel-title" style="color: #8e44ad;"><i class="fas fa-key"></i> Đổi mật khẩu</div></div>
-            <div class="sensor-card" style="border-top: 4px solid #8e44ad; padding: 25px;">
-                <form id="change-pass-form">
-                    <div class="input-group" style="margin-bottom:20px">
-                        <label for="old-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu cũ</label>
-                        <input type="password" id="old-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập mật khẩu hiện tại">
-                    </div>
-                    <div class="input-group" style="margin-bottom:20px">
-                        <label for="new-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu mới</label>
-                        <input type="password" id="new-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Ít nhất 6 ký tự">
-                    </div>
-                    <div class="input-group" style="margin-bottom:30px">
-                        <label for="confirm-pass" style="display:block; font-weight:600; margin-bottom:8px">Xác nhận mật khẩu mới</label>
-                        <input type="password" id="confirm-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập lại mật khẩu mới">
-                    </div>
-                    
-                    <button type="submit" class="btn btn-add" style="width:100%; background:#8e44ad; 
-                                                                font-size: 1.1em; padding: 14px;
-                                                                border-radius: 6px; box-shadow: 0 4px 8px rgba(142, 68, 173, 0.3);">
-                        Đổi Mật Khẩu
-                    </button>
-                </form>
-            </div>
-        </div>
-
-    </div>
-</div>
 
     <div class="overlay" id="overlay" onclick="closeMenu()"></div>
     <div class="sidebar" id="sidebar">
@@ -212,6 +193,52 @@
         <div class="menu-item" onclick="switchView('stats', this, 'Thống kê & Biểu đồ')"><i class="fas fa-chart-pie"></i> Thống kê</div>
         <div class="menu-item" onclick="switchView('notification', this, 'Thông báo hệ thống')"><i class="fas fa-bell"></i> Thông báo</div>
         <div class="menu-item" onclick="switchView('development', this, 'Chế độ nhà phát triển')"><i class="fas fa-code"></i> Nhà phát triển</div>
+    </div>
+
+    <div id="view-account" class="section-view">
+        <div class="control-layout">
+            <div style="flex: 1;">
+                <div class="panel-header"><div class="panel-title" style="color: #009879;"><i class="fas fa-id-badge"></i> Thông tin tài khoản</div></div>
+                <div class="sensor-card" style="border-top: 4px solid #009879; padding: 25px; height: 100%;">
+                    <div class="sensor-row" style="padding-bottom: 15px;">
+                        <span><i class="fas fa-envelope" style="color: #3498db;"></i> Email đăng nhập:</span>
+                        <span style="font-weight:bold; color: #2c3e50;" id="acc-email">Đang tải...</span>
+                    </div>
+                    <div class="sensor-row" style="padding-bottom: 15px;">
+                        <span><i class="fas fa-id-card" style="color: #7f8c8d;"></i> Mã người dùng (ID):</span>
+                        <span style="font-weight:bold" id="acc-id">--</span>
+                    </div>
+                    <div class="sensor-row" style="border-bottom: none;">
+                        <span><i class="fas fa-user-tag" style="color: #2ecc71;"></i> Vai trò:</span>
+                        <span style="font-weight:bold; color:green">Admin (Mockup)</span>
+                    </div>
+                    
+                    <button class="btn btn-off" style="width:100%; margin-top:30px; background:#e74c3c; color:white; font-size: 1.1em; padding: 12px; border-radius: 6px; box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);" onclick="handleLogout()">Đăng xuất <i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+            
+            <div style="flex: 1;">
+                <div class="panel-header"><div class="panel-title" style="color: #8e44ad;"><i class="fas fa-key"></i> Đổi mật khẩu</div></div>
+                <div class="sensor-card" style="border-top: 4px solid #8e44ad; padding: 25px;">
+                    <form id="change-pass-form">
+                        <div class="input-group" style="margin-bottom:20px">
+                            <label for="old-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu cũ</label>
+                            <input type="password" id="old-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập mật khẩu hiện tại">
+                        </div>
+                        <div class="input-group" style="margin-bottom:20px">
+                            <label for="new-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu mới</label>
+                            <input type="password" id="new-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Ít nhất 6 ký tự">
+                        </div>
+                        <div class="input-group" style="margin-bottom:30px">
+                            <label for="confirm-pass" style="display:block; font-weight:600; margin-bottom:8px">Xác nhận mật khẩu mới</label>
+                            <input type="password" id="confirm-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập lại mật khẩu mới">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-add" style="width:100%; background:#8e44ad; font-size: 1.1em; padding: 14px; border-radius: 6px; box-shadow: 0 4px 8px rgba(142, 68, 173, 0.3);">Đổi Mật Khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="view-control" class="section-view active">
@@ -225,7 +252,14 @@
                     </div>
                 </div>
                 <table class="iot-table">
-                    <thead><tr><th>ID</th><th>Tên thiết bị</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th style="width: 10%; text-align:center;">ID</th>
+                            <th style="width: 40%;">Tên thiết bị</th>
+                            <th style="width: 20%; text-align:center;">Trạng thái</th>
+                            <th style="width: 30%; text-align:center;">Hành động</th>
+                        </tr>
+                    </thead>
                     <tbody id="control-body"></tbody>
                 </table>
                 <div style="margin-top:10px; color:#777; font-style:italic; font-size:0.9em">* Bấm vào dòng thiết bị để xem lịch sử BẬT/TẮT chi tiết.</div>
@@ -318,17 +352,12 @@
 
         function switchView(viewName, btn, title) {
             currentView = viewName;
-
             document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
             document.getElementById(`view-${viewName}`).classList.add('active');
-
             document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
-            
             document.getElementById('page-title').innerText = title;
             closeMenu();
-
-            // Load dữ liệu tương ứng
             if (viewName === 'control') updateDashboard();
             if (viewName === 'account') loadAccountInfo();
             if (viewName === 'stats') loadCharts();
@@ -341,7 +370,7 @@
                 const res = await fetch("/api/user_status", { credentials: "include" });
                 const data = await res.json();
                 if (!data.logged_in) {
-                    window.location.href = "/"; // Chuyển về login nếu chưa đăng nhập
+                    window.location.href = "/";
                 }
             } catch (e) {
                 window.location.href = "/";
@@ -360,23 +389,16 @@
         async function loadAccountInfo() {
             try {
                 const res = await fetch(`${API_BASE}/api/user_info`, { credentials: "include" });
-                
                 if (res.status === 200) {
                     const userInfo = await res.json();
-                    const emailElem = document.getElementById('acc-email');
-                    const idElem = document.getElementById('acc-id');
-                    
-                    if(emailElem) emailElem.innerText = userInfo.email;
-                    if(idElem) idElem.innerText = `#${userInfo.id}`;
+                    document.getElementById('acc-email').innerText = userInfo.email;
+                    document.getElementById('acc-id').innerText = `#${userInfo.id}`;
                 } else if (res.status === 401) {
                     window.location.href = '/'; 
                 }
-            } catch (e) {
-                console.error("Lỗi tải thông tin tài khoản:", e);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // --- CHANGE PASSWORD LOGIC ---
         const changePassForm = document.getElementById('change-pass-form');
         if (changePassForm) {
             changePassForm.addEventListener('submit', async (e) => {
@@ -384,10 +406,8 @@
                 const oldPass = document.getElementById('old-pass').value;
                 const newPass = document.getElementById('new-pass').value;
                 const confirmPass = document.getElementById('confirm-pass').value;
-
                 if (newPass.length < 6) return Swal.fire("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự.", "error");
                 if (newPass !== confirmPass) return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp.", "error");
-
                 try {
                     const response = await fetch('/change_password', {
                         method: 'POST',
@@ -396,16 +416,11 @@
                         body: JSON.stringify({ old_password: oldPass, new_password: newPass })
                     });
                     const result = await response.json();
-
                     if (response.ok) {
                         Swal.fire("Thành công!", result.message, "success");
                         changePassForm.reset();
-                    } else {
-                        Swal.fire("Thất bại", result.message, "error");
-                    }
-                } catch (error) {
-                    Swal.fire("Lỗi kết nối", "Không thể kết nối server.", "error");
-                }
+                    } else { Swal.fire("Thất bại", result.message, "error"); }
+                } catch (error) { Swal.fire("Lỗi kết nối", "", "error"); }
             });
         }
 
@@ -429,12 +444,11 @@
                 renderSensorPanel(devices); 
                 renderDevelopmentView(devices); 
                 updateBell(dropNotis); 
-                
                 if(document.getElementById('view-stats').classList.contains('active')) { renderStatsTable(devices); } 
             } catch (e) { console.error(e); } 
         }
 
-        // --- RENDER CONTROL VIEW (FIXED) ---
+        // --- RENDER CONTROL VIEW (ĐÃ CĂN CHỈNH) ---
         function renderControlView(devices) {
             const tbody = document.getElementById('control-body');
             if (devices.length === 0) { 
@@ -456,33 +470,26 @@
             devices.forEach(d => {
                 const isOn = d.status === "ON";
                 const statusBadge = isOn 
-                    ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 10px; border-radius:15px">BẬT</span>` 
-                    : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 10px; border-radius:15px">TẮT</span>`;
+                    ? `<span style="color:green; font-weight:bold; background:#e8f5e9; padding:5px 12px; border-radius:15px; font-size:0.9em; display:inline-block; min-width:60px; text-align:center;">BẬT</span>` 
+                    : `<span style="color:red; font-weight:bold; background:#ffebee; padding:5px 12px; border-radius:15px; font-size:0.9em; display:inline-block; min-width:60px; text-align:center;">TẮT</span>`;
                 
-                // Nút thao tác (KHÔNG CÓ GPIO)
+                // Căn chỉnh các nút hành động vào giữa
                 const actionsHtml = `
-                    <div style="display: flex; align-items: center; gap: 5px; justify-content: flex-end;">
-                        <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')">Bật</button>
-                        <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')">Tắt</button>
-                        
-                        <button class="btn" style="background:#3498db; padding: 8px 12px;" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')" title="Đổi tên">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        
-                        <button class="btn btn-del" onclick="event.stopPropagation(); deleteDevice(${d.id})" title="Xóa thiết bị">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="cell-actions">
+                        <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')" title="Bật đèn"><i class="fas fa-power-off"></i> Bật</button>
+                        <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')" title="Tắt đèn"><i class="far fa-circle"></i> Tắt</button>
+                        <button class="btn" style="background:#3498db; padding:8px 10px;" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')" title="Đổi tên"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-del" style="padding:8px 10px;" onclick="event.stopPropagation(); deleteDevice(${d.id})" title="Xóa"><i class="fas fa-trash"></i></button>
                     </div>`;
                 
-                // HIỂN THỊ TÊN THIẾT BỊ (KHÔNG CÓ GPIO)
                 html += `
-                <tr class="device-row" onclick="toggleHistory(${d.id})">
-                    <td><strong>#${d.id}</strong></td>
-                    <td class="cell-name" style="font-weight:500; cursor:pointer">
+                <tr class="device-row" onclick="toggleHistory(${d.id})" id="row-${d.id}" data-id="${d.id}">
+                    <td style="text-align: center; color: #7f8c8d;"><strong>#${d.id}</strong></td>
+                    <td class="cell-name" style="font-weight:600; cursor:pointer; font-size:1.05em; color: #2c3e50;">
                         ${d.name} 
                     </td>
-                    <td class="cell-status">${statusBadge}</td>
-                    <td class="cell-actions">${actionsHtml}</td>
+                    <td class="cell-status" style="text-align: center;">${statusBadge}</td>
+                    <td class="cell-actions-container" style="text-align: center;">${actionsHtml}</td>
                 </tr>
                 <tr class="history-row" id="history-${d.id}">
                     <td colspan="4" class="history-content"><div id="hist-data-${d.id}"></div></td>
@@ -495,26 +502,20 @@
         async function fetchHistory(id) { 
             const div = document.getElementById(`hist-data-${id}`); 
             if(!div) return; 
-            
             if (!div.querySelector('table') && !div.innerHTML.includes("Chưa có")) {
                 div.innerHTML = '<div style="padding:10px; color:#666; text-align:center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
             }
-
             try {
                 const res = await fetch(`${API_BASE}/api/devices/${id}/history`, { credentials: "include" }); 
                 const logs = await res.json();
-                
                 if(logs.length === 0){ 
                     div.innerHTML = "<div style='padding:10px; color:#999; font-style:italic; text-align:center'>Chưa có lịch sử hoạt động.</div>"; 
                     return; 
                 } 
-                
                 let h = `<table class="history-table"><thead><tr><th style="background:#34495e; color:white">Thời gian</th><th style="background:#34495e; color:white">Hành động</th><th style="background:#34495e; color:white">Người dùng</th></tr></thead><tbody>`; 
                 logs.forEach(l => { 
-                    let statusClass = ""; let actionText = l.action;
-                    if(l.action === "ON") { statusClass = "badge-on"; actionText = "BẬT"; }
-                    else if(l.action === "OFF") { statusClass = "badge-off"; actionText = "TẮT"; }
-                    h += `<tr><td><i class="far fa-clock"></i> ${l.time}</td><td class="${statusClass}" style="font-weight:bold">${actionText}</td><td><i class="far fa-user"></i> ${l.user}</td></tr>`; 
+                    let statusClass = l.action === "ON" ? "badge-on" : "badge-off";
+                    h += `<tr><td><i class="far fa-clock"></i> ${l.time}</td><td class="${statusClass}">${l.action}</td><td><i class="far fa-user"></i> ${l.user}</td></tr>`; 
                 }); 
                 h += `</tbody></table>`; 
                 div.innerHTML = h; 
@@ -531,7 +532,7 @@
             const tbody = document.getElementById('stats-body'); 
             let html = ""; 
             devices.forEach(d => { 
-                let currentRun = 0; let statusBadge = '<span style="color:#95a5a6">Đã tắt</span>';
+                let currentRun = 0; let statusBadge = '<span style="color:#95a5a6; font-weight:bold; background:#eee; padding:2px 8px; border-radius:10px">Đã tắt</span>';
                 if(d.status === "ON") {
                     statusBadge = '<span class="badge-on">ĐANG CHẠY</span>';
                     if (d.last_on_time) currentRun = (Date.now()/1000) - d.last_on_time; 
@@ -561,7 +562,7 @@
                 } 
                 const isOpen = openStatsIds.has(d.id) ? 'open' : ''; 
                 const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
-                html += `<tr class="stats-main-row" onclick="toggleStats(${d.id})"><td style="font-weight:500"><strong>#${d.id}</strong> - ${d.name}</td><td>${statusBadge}</td><td style="font-weight:bold; color:#2c3e50">${totalTimeStr}</td><td><i class="fas ${iconClass}" style="color:#aaa; transition:0.3s;"></i></td></tr><tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}"><td colspan="4" style="padding:0 !important; background:#fffcf5"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td></tr>`; 
+                html += `<tr class="stats-main-row" onclick="toggleStats(${d.id})"><td style="font-weight:500"><strong>#${d.id}</strong> - ${d.name}</td><td style="text-align:center">${statusBadge}</td><td style="font-weight:bold; color:#2c3e50; text-align:center">${totalTimeStr}</td><td style="text-align:center"><i class="fas ${iconClass}" style="color:#aaa; transition:0.3s;"></i></td></tr><tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}"><td colspan="4" style="padding:0 !important; background:#fffcf5"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td></tr>`; 
             }); 
             if (tbody.innerHTML !== html) tbody.innerHTML = html; 
         }
@@ -594,7 +595,6 @@
             lastPirState[d.id] = d.pir;
 
             let galleryHeader = d.pir === 1 || (d.images && d.images.length > 0) ? `<div class="warning-alert" onclick="toggleGallery()"><i class="fas fa-exclamation-circle icon"></i><span class="message">CẢNH BÁO CÓ NGƯỜI</span><i class="fas ${isGalleryOpen ? 'fa-chevron-up' : 'fa-chevron-down'}" id="gallery-toggle-icon" style="margin-left:auto; color:#c0392b"></i></div>` : `<div class="safe-alert"><i class="fas fa-check-circle icon"></i><span class="message">KHU VỰC AN TOÀN</span></div>`;
-            
             let galleryContent = `<div class="gallery-content" id="gallery-content"></div>`; 
             let contentHtml = '';
             let latestImageTime = '00:00:00 01/01';
@@ -618,34 +618,7 @@
             if (containerRemote.innerHTML !== htmlRemote) containerRemote.innerHTML = htmlRemote;
         }
 
-        // --- NOTIFICATIONS, DEV VIEW, OTHER UTILS ---
-        
-        function updateBell(data) { 
-            const unreadCount = data.length;
-            const badge = document.getElementById('notify-count'); 
-            if (unreadCount > 0) { badge.innerText = unreadCount > 9 ? '9+' : unreadCount; badge.style.display = 'block'; const bell = document.getElementById('bell-icon'); if (JSON.stringify(data) !== lastNotifySignature) { bell.classList.add('shake'); setTimeout(() => bell.classList.remove('shake'), 500); } } else { badge.style.display = 'none'; } 
-            const currentSig = JSON.stringify(data); if (currentSig === lastNotifySignature) return; lastNotifySignature = currentSig; 
-            const listDiv = document.getElementById('notify-list'); 
-            if (data.length === 0) { listDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic">Không có thông báo mới</div>'; return; } 
-            let html = ''; data.forEach(item => { let cls = 'act-on'; let displayName = item.name; if(item.action === 'OFF') cls = 'act-off'; if(item.action.includes('CHỤP') || item.action.includes('PHÁT HIỆN')) { cls = 'act-cam'; } if(item.action.includes('THÊM')) cls = 'act-add'; if(item.action.includes('XÓA')) cls = 'act-del'; html += `<div class="notify-item"><div class="n-row1"><span>${displayName}</span><span class="n-action ${cls}">${item.action}</span></div><div class="n-row2"><span><i class="far fa-clock"></i> ${item.time}</span></div></div>`; }); listDiv.innerHTML = html; 
-        }
-
-        function toggleNotify(event) { 
-            if (event) event.stopPropagation(); 
-            const dd = document.getElementById('notify-dropdown'); 
-            dd.classList.toggle('show'); 
-            if (dd.classList.contains('show')) { 
-                if (globalNotifications.length > 0) { lastViewedTimestamp = globalNotifications[0].ts; } 
-                document.getElementById('notify-count').style.display = 'none'; 
-            } 
-        }
-
-        async function clearNotifications() { try { await fetch(`${API_BASE}/api/notifications/clear`, { method: "POST" }); document.getElementById('notify-dropdown').classList.remove('show'); updateDashboard(); const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 1500}); Toast.fire({icon: 'success', title: 'Đã xóa thông báo'}); } catch(e) { console.error("Lỗi xóa thông báo"); } }
-        function renderNotificationPage(notis) { const tbody = document.getElementById('notify-body'); if (notis.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px">Chưa có dữ liệu</td></tr>'; return; } let html = ""; notis.forEach(n => { let badgeClass = "tag-user"; if (n.user === "System") badgeClass = "tag-sys"; let rowColor = ""; if (n.action.includes("CHỤP") || n.action.includes("PHÁT HIỆN")) rowColor = "background:#fffbf0"; let displayName = n.name; html += `<tr style="${rowColor}"><td style="color:#555">${n.time}</td><td style="font-weight:500">${displayName} <small style="color:#999">#${n.id}</small></td><td style="font-weight:bold">${n.action}</td><td><span class="tag ${badgeClass}">${n.user}</span></td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
-
-        function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
-        
-        // --- HÀM XỬ LÝ NÚT BẤM ---
+        // --- BUTTON ACTIONS ---
         function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
         async function handleAddDevice() { const name = document.getElementById('new-dev-name').value; if(!name) return Swal.fire("Lỗi", "Vui lòng nhập tên", "error"); await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); document.getElementById('new-dev-name').value = ""; updateDashboard(); Swal.fire("Thành công", "Đã thêm thiết bị", "success"); }
         async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}, {credentials: "include"}); updateDashboard(); }
@@ -668,12 +641,8 @@
                         if (data.success) {
                             Swal.fire('Đã xóa!', 'Thiết bị đã được gỡ bỏ.', 'success');
                             updateDashboard();
-                        } else {
-                            Swal.fire('Lỗi', data.message, 'error');
-                        }
-                    } catch (e) {
-                        Swal.fire('Lỗi kết nối', '', 'error');
-                    }
+                        } else { Swal.fire('Lỗi', data.message, 'error'); }
+                    } catch (e) { Swal.fire('Lỗi kết nối', '', 'error'); }
                 }
             })
         }
@@ -685,13 +654,8 @@
                 inputLabel: 'Nhập tên mới',
                 inputValue: oldName,
                 showCancelButton: true,
-                inputValidator: (value) => {
-                    if (!value) {
-                        return 'Bạn chưa nhập tên mới!'
-                    }
-                }
+                inputValidator: (value) => { if (!value) return 'Bạn chưa nhập tên mới!' }
             })
-
             if (newName) {
                 try {
                     const res = await fetch(`${API_BASE}/api/devices/${id}/rename`, {
@@ -703,15 +667,12 @@
                     if (data.success) {
                         Swal.fire('Thành công', 'Tên thiết bị đã được cập nhật', 'success');
                         updateDashboard();
-                    } else {
-                        Swal.fire('Lỗi', data.message, 'error');
-                    }
-                } catch (e) {
-                    Swal.fire('Lỗi kết nối', '', 'error');
-                }
+                    } else { Swal.fire('Lỗi', data.message, 'error'); }
+                } catch (e) { Swal.fire('Lỗi kết nối', '', 'error'); }
             }
         }
 
+        // --- CHARTS & STREAM ---
         function initCharts(data5m, data1h) {
             const ctx5m = document.getElementById('chart5m').getContext('2d'); if(chart5m) chart5m.destroy(); chart5m = new Chart(ctx5m, { type: 'line', data: { labels: data5m.map(d => d.time), datasets: [{ label: 'Nhiệt độ (°C)', data: data5m.map(d => d.temp), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.1)', borderWidth: 2, tension: 0.3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
             const ctx1h = document.getElementById('chart1h').getContext('2d'); if(chart1h) chart1h.destroy(); chart1h = new Chart(ctx1h, { type: 'bar', data: { labels: data1h.map(d => d.time), datasets: [{ label: 'Nhiệt độ TB', data: data1h.map(d => d.temp), backgroundColor: '#e67e22', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
