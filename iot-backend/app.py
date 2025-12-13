@@ -4,6 +4,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import os, string, random, time
+import threading  # <--- ĐÃ THÊM THƯ VIỆN NÀY (QUAN TRỌNG)
 import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
@@ -36,7 +37,7 @@ bcrypt = Bcrypt(app)
 # Danh sách các chân an toàn trên ESP32
 SAFE_GPIO_POOL = [2, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
 
-# Dữ liệu thiết bị hiện tại
+# Dữ liệu thiết bị hiện tại (Đã chỉnh PIN 2 cho đèn Onboard)
 output_devices = [
     {
         "id": 1,
@@ -101,16 +102,8 @@ def on_message(client, userdata, msg):
     except Exception as e:
         print("❌ MQTT parse error:", e)
 
-mqtt_client = mqtt.Client()
-mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
-mqtt_client.tls_set()
-mqtt_client.on_connect = on_connect
-mqtt_client.on_message = on_message
-mqtt_client.connect(MQTT_HOST, MQTT_PORT)
-mqtt_client.loop_start()
-
 # ===============================
-# API: THÊM / XÓA / SỬA / LẤY THIẾT BỊ
+# API ROUTES
 # ===============================
 
 # 1. Thêm thiết bị
@@ -146,13 +139,14 @@ def add_device():
 def delete_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     
-    global output_devices # Quan trọng: Phải khai báo global để sửa list
+    global output_devices 
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     
     if dev:
         SAFE_GPIO_POOL.append(dev["pin"])
         SAFE_GPIO_POOL.sort() 
         
+        # Gửi lệnh tắt trước khi xóa
         mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": "OFF"}))
         
         output_devices = [d for d in output_devices if d["id"] != dev_id]
@@ -199,9 +193,11 @@ def control_device(dev_id, action):
     if dev:
         dev["status"] = action
         
+        # Gửi MQTT
         mqtt_payload = json.dumps({"pin": dev["pin"], "status": action})
         mqtt_client.publish(MQTT_CONTROL_TOPIC, mqtt_payload)
         
+        # Ghi log
         if action == "ON":
             dev["last_on_time"] = time.time()
         elif action == "OFF" and dev["last_on_time"]:
@@ -220,7 +216,7 @@ def control_device(dev_id, action):
     return jsonify({"success": False, "message": "Device not found"}), 404
 
 # ===============================
-# CÁC API KHÁC (Thông báo, User, Auth...)
+# CÁC API KHÁC
 # ===============================
 @app.route("/")
 def index():
@@ -293,12 +289,11 @@ def get_user_info():
     user = next((u for u in users if u["id"] == session["user_id"]), None)
     return jsonify({"id": user["id"], "email": user["email"]}) if user else (jsonify({"error": "Not found"}), 404)
 
-# HELPER: Generate Password (nếu cần)
+# HELPER: Passwords
 def generate_random_password(length=8):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
-# AUTH: Forgot & Change Password
 @app.route("/forgot_password", methods=["POST"])
 def forgot_password():
     data = request.json
@@ -340,10 +335,8 @@ def send_password_email(to_email, new_password):
         print("❌ SendGrid error:", e)
         return False
 
-# ... (Các đoạn trên giữ nguyên) ...
-
 # ==========================================
-# 7. RUN (SỬA LẠI ĐOẠN NÀY)
+# 7. RUN
 # ==========================================
 mqtt_client = mqtt.Client()
 
@@ -351,8 +344,8 @@ def run_mqtt():
     # Cấu hình MQTT
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
     mqtt_client.tls_set()
-    mqtt_client.on_connect = on_mqtt_connect
-    mqtt_client.on_message = on_mqtt_message
+    mqtt_client.on_connect = on_connect
+    mqtt_client.on_message = on_message
     
     # Vòng lặp kết nối
     while True:
@@ -364,8 +357,10 @@ def run_mqtt():
             print(f"⚠️ Lỗi kết nối MQTT: {e}")
             time.sleep(5)
 
+# Chạy MQTT ở luồng riêng (Tương thích Render)
 threading.Thread(target=run_mqtt, daemon=True).start()
 
+# Tạo user mặc định
 hashed_password = bcrypt.generate_password_hash("admin").decode('utf-8')
 if not any(u['email'] == "admin@iot.com" for u in users):
     users.append({"id": 1, "email": "admin@iot.com", "password": hashed_password})
@@ -373,4 +368,3 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 App running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
-
