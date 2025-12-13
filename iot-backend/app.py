@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import os, string, random, time
-import threading # QUAN TRỌNG: Để chạy MQTT song song
+import threading 
 import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
@@ -32,12 +32,10 @@ CORS(app)
 bcrypt = Bcrypt(app)
 
 # ===============================
-# QUẢN LÝ KHO CHÂN GPIO (SAFE PIN WAREHOUSE)
+# QUẢN LÝ KHO CHÂN GPIO
 # ===============================
-# Loại bỏ chân 4 (đang dùng cho DHT11) để tránh xung đột
 SAFE_GPIO_POOL = [2, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
 
-# Dữ liệu thiết bị hiện tại
 output_devices = [
     {
         "id": 1,
@@ -50,7 +48,6 @@ output_devices = [
     }
 ]
 
-# Hàm khởi tạo kho: Loại bỏ các chân đang dùng ra khỏi kho
 def init_pin_warehouse():
     used_pins = [d['pin'] for d in output_devices]
     for pin in used_pins:
@@ -84,7 +81,7 @@ def add_notification(name, action, user="System"):
         "user": user,
         "ts": time.time()
     })
-    if len(notifications) > 50: notifications.pop()
+    if len(notifications) > 100: notifications.pop() # Lưu 100 thông báo gần nhất
 
 # ===============================
 # MQTT HANDLERS
@@ -103,10 +100,9 @@ def on_message(client, userdata, msg):
         print("❌ MQTT parse error:", e)
 
 # ===============================
-# API ROUTES QUẢN LÝ THIẾT BỊ
+# API ROUTES
 # ===============================
 
-# 1. Thêm thiết bị (ID tăng dần)
 @app.route("/api/devices", methods=["POST"])
 def add_device():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -116,11 +112,9 @@ def add_device():
         
     data = request.json
     name = data.get("name", "Thiết bị mới")
-    
-    # Lấy chân từ kho
     assigned_pin = SAFE_GPIO_POOL.pop(0) 
     
-    # Logic ID tăng dần
+    # ID tăng dần
     if output_devices:
         new_id = max(d["id"] for d in output_devices) + 1
     else:
@@ -136,51 +130,37 @@ def add_device():
         "usage_logs": []
     }
     output_devices.append(new_device)
-    
     add_notification(name, f"ĐÃ THÊM (PIN {assigned_pin})", session.get("email"))
     return jsonify({"success": True, "device": new_device})
 
-# 2. Xóa thiết bị
 @app.route("/api/devices/<int:dev_id>", methods=["DELETE"])
 def delete_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    
     global output_devices 
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     
     if dev:
-        # Trả PIN về kho
         SAFE_GPIO_POOL.append(dev["pin"])
         SAFE_GPIO_POOL.sort() 
-        
-        # Gửi lệnh tắt an toàn
         mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": "OFF"}))
-        
         output_devices = [d for d in output_devices if d["id"] != dev_id]
         add_notification(dev["name"], "ĐÃ XÓA", session.get("email"))
         return jsonify({"success": True})
-        
     return jsonify({"success": False, "message": "Not found"}), 404
 
-# 3. Đổi tên thiết bị
 @app.route("/api/devices/<int:dev_id>/rename", methods=["POST"])
 def rename_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    
     data = request.json
     new_name = data.get("name")
-    
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
-    
     if dev and new_name:
         old_name = dev["name"]
         dev["name"] = new_name
         add_notification(old_name, f"ĐỔI TÊN THÀNH: {new_name}", session.get("email"))
         return jsonify({"success": True})
-        
-    return jsonify({"success": False, "message": "Device not found or invalid name"}), 400
+    return jsonify({"success": False}), 400
 
-# 4. Lấy danh sách
 @app.route("/api/devices", methods=["GET"])
 def get_devices_list():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -189,42 +169,34 @@ def get_devices_list():
         resp[0].update(latest_device_data)
     return jsonify(resp)
 
-# 5. Điều khiển BẬT/TẮT
 @app.route("/api/devices/<int:dev_id>/<action>", methods=["POST"])
 def control_device(dev_id, action):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
-    
     action = action.upper()
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     
     if dev:
         dev["status"] = action
+        mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": action}))
         
-        # Gửi MQTT
-        mqtt_payload = json.dumps({"pin": dev["pin"], "status": action})
-        mqtt_client.publish(MQTT_CONTROL_TOPIC, mqtt_payload)
-        
-        # Ghi log
+        # Logic tính thời gian
         if action == "ON":
             dev["last_on_time"] = time.time()
         elif action == "OFF" and dev["last_on_time"]:
             dur = time.time() - dev["last_on_time"]
             dev["total_on_time"] += dur
             dev["usage_logs"].insert(0, {
-                "start": datetime.fromtimestamp(dev["last_on_time"]).strftime("%H:%M:%S"),
-                "end": datetime.now().strftime("%H:%M:%S"),
+                "start": datetime.fromtimestamp(dev["last_on_time"]).strftime("%H:%M:%S %d/%m"),
+                "end": datetime.now().strftime("%H:%M:%S %d/%m"),
                 "duration": dur
             })
             dev["last_on_time"] = None
             
         add_notification(dev["name"], action, session.get("email"))
         return jsonify({"success": True})
-        
-    return jsonify({"success": False, "message": "Device not found"}), 404
+    return jsonify({"success": False}), 404
 
-# ===============================
-# CÁC API KHÁC
-# ===============================
+# --- API KHÁC ---
 @app.route("/")
 def index():
     if "user_id" in session: return render_template("index.html")
@@ -235,17 +207,20 @@ def get_device_history(dev_id):
     if "user_id" not in session: return jsonify([]), 401
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     if not dev: return jsonify([])
+    # Lọc lịch sử từ danh sách notification
     device_history = [n for n in notifications if n['name'] == dev['name']]
     return jsonify(device_history)
 
 @app.route("/api/notifications", methods=["GET"])
 def api_notifications():
     if "user_id" not in session: return jsonify([]), 401
+    # Trả về TOÀN BỘ thông báo (để hiển thị ở trang Nhật ký hệ thống)
     return jsonify(notifications)
 
 @app.route("/api/notifications/dropdown", methods=["GET"])
 def get_dropdown_notif():
     if "user_id" not in session: return jsonify([]), 401
+    # Chỉ trả về thông báo MỚI (để hiển thị ở cái chuông)
     filtered = [n for n in notifications if n.get('ts', 0) > dropdown_last_clear]
     return jsonify(filtered)
 
@@ -257,12 +232,8 @@ def clear_dropdown():
 
 @app.route("/api/stats")
 def api_stats():
+    # Phần biểu đồ tạm để trống, logic này cần DB phức tạp hơn
     return jsonify({"chart_5m": [], "chart_1h": []})
-
-@app.route("/api/iot_data", methods=["GET"])
-def get_iot_data():
-    if not latest_device_data: return jsonify({"success": False, "message": "No data"})
-    return jsonify({"success": True, "data": latest_device_data})
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -296,25 +267,6 @@ def get_user_info():
     user = next((u for u in users if u["id"] == session["user_id"]), None)
     return jsonify({"id": user["id"], "email": user["email"]}) if user else (jsonify({"error": "Not found"}), 404)
 
-# HELPER: Passwords
-def generate_random_password(length=8):
-    chars = string.ascii_letters + string.digits
-    return ''.join(random.choice(chars) for _ in range(length))
-
-@app.route("/forgot_password", methods=["POST"])
-def forgot_password():
-    data = request.json
-    email = data.get("email")
-    user = next((u for u in users if u["email"] == email), None)
-    if user:
-        new_password = generate_random_password()
-        user["password"] = bcrypt.generate_password_hash(new_password).decode("utf-8")
-        if send_password_email(email, new_password):
-            return jsonify({"success": True, "message": "Mật khẩu mới đã được gửi về email"})
-        else:
-            return jsonify({"success": False, "message": "Lỗi gửi email"}), 500
-    return jsonify({"success": True, "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi"})
-
 @app.route("/change_password", methods=["POST"])
 def change_password():
     if "user_id" not in session: return jsonify({"success": False}), 403
@@ -327,44 +279,25 @@ def change_password():
     user["password"] = bcrypt.generate_password_hash(new_pw).decode("utf-8")
     return jsonify({"success": True})
 
-def send_password_email(to_email, new_password):
-    try:
-        sg = sendgrid.SendGridAPIClient(SENDGRID_API_KEY)
-        message = Mail(
-            from_email=EMAIL_USER,
-            to_emails=to_email,
-            subject="Reset mật khẩu - IOT Platform",
-            plain_text_content=f"Mật khẩu mới của bạn là: {new_password}\n\nVui lòng đăng nhập và đổi mật khẩu ngay."
-        )
-        response = sg.send(message)
-        return response.status_code == 202
-    except Exception as e:
-        print("❌ SendGrid error:", e)
-        return False
-
-# ==========================================
-# 7. RUN
-# ==========================================
+# ===============================
+# RUN MQTT & APP
+# ===============================
 mqtt_client = mqtt.Client()
 
 def run_mqtt():
-    # Cấu hình MQTT
     mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
     mqtt_client.tls_set()
     mqtt_client.on_connect = on_connect
     mqtt_client.on_message = on_message
-    
-    # Vòng lặp kết nối
     while True:
         try:
-            print("🔄 Đang kết nối MQTT...")
+            print("🔄 Connecting MQTT...")
             mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
             mqtt_client.loop_forever()
         except Exception as e:
-            print(f"⚠️ Lỗi kết nối MQTT: {e}")
+            print(f"⚠️ MQTT Error: {e}")
             time.sleep(5)
 
-# Chạy MQTT ở luồng riêng (Tương thích Render)
 threading.Thread(target=run_mqtt, daemon=True).start()
 
 # Tạo user mặc định
@@ -373,5 +306,4 @@ if not any(u['email'] == "admin@iot.com" for u in users):
     users.append({"id": 1, "email": "admin@iot.com", "password": hashed_password})
 
 if __name__ == '__main__':
-    print("🚀 App running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
