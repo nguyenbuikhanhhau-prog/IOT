@@ -8,11 +8,16 @@ import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
 import json
+from dotenv import load_dotenv
+load_dotenv()
+
+MQTT_HOST = os.getenv("MQTT_HOST")
+MQTT_USER = os.getenv("MQTT_USER")
+MQTT_PASS = os.getenv("MQTT_PASS")
 
 # ===============================
 # LOAD ENV
 # ===============================
-load_dotenv()
 
 MQTT_HOST = os.getenv("MQTT_HOST")
 MQTT_PORT = 8883
@@ -217,7 +222,11 @@ def get_user_info():
         })
     return jsonify({"error": "User not found"}), 404
     
-    mqtt_client = mqtt.Client()
+# ===============================
+# MQTT INIT
+# ===============================
+mqtt_client = mqtt.Client()
+
 mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
 mqtt_client.tls_set()
 
@@ -235,6 +244,7 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
 
