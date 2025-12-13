@@ -187,6 +187,18 @@
         .message.error { background-color: var(--button-danger); }
 
         #register-form, #forgot-password-form { display: none; }
+        .spam-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.spam-note i {
+    color: #f39c12;
+    margin-right: 4px;
+}
+
     </style>
 </head>
 <body>
@@ -241,6 +253,10 @@
                     </div>
                     <button type="submit" class="btn">Gửi yêu cầu</button>
                 </form>
+<div class="spam-note">
+    <i class="fas fa-exclamation-triangle"></i>
+    Nếu không nhận được email đặt lại mật khẩu, vui lòng kiểm tra <b>Thư rác (Spam)</b>.
+</div>
 
                 <div class="links">
                     <a href="#" id="show-register">Đăng ký</a> |
@@ -248,18 +264,6 @@
                     <a href="#" id="show-login" style="display:none;">Quay lại Đăng nhập</a>
                 </div>
             </div>
-.spam-note {
-    margin-top: 12px;
-    font-size: 12px;
-    color: #7f8c8d;
-    text-align: center;
-}
-
-.spam-note i {
-    color: #f39c12;
-    margin-right: 4px;
-}
-
             <div class="author-info">
                 <strong>Author:</strong> Nguyễn Bùi Khánh Hậu | <strong>MSSV:</strong> 42200312
             </div>
@@ -363,19 +367,18 @@ forgotForm.addEventListener("submit", async (e) => {
 
         const data = await res.json();
 
-        // Kiểm tra kết quả trả về từ server
         if (data.success) {
             statusMessage.className = "message success";
             statusMessage.innerHTML = `
                 ${data.message || "Mật khẩu mới đã được gửi."}
-                <br><small>⚠️ Nếu không thấy email, hãy kiểm tra <b>Thư rác / Spam</b>.</small>
+                <br>
+                <small>⚠️ Nếu không thấy email, hãy kiểm tra <b>Thư rác / Spam</b>.</small>
             `;
         } else {
             statusMessage.className = "message error";
             statusMessage.innerText = data.message || "Có lỗi xảy ra.";
         }
-        
-        // Hiển thị thông báo lên màn hình
+
         statusMessage.style.display = "block";
 
     } catch (err) {
@@ -384,16 +387,11 @@ forgotForm.addEventListener("submit", async (e) => {
         statusMessage.style.display = "block";
     }
 });
-        catch (err) {
-        statusMessage.className = "message error";
-        statusMessage.innerText = "Không kết nối được server.";
-        statusMessage.style.display = "block";
-    }
-})
     </script>
 </body>
 
 </html>
+
 
 
 
