@@ -587,19 +587,27 @@ const resDev = await fetch(`${API_BASE}/api/devices`, {
             } 
         } 
         // --- ACCOUNT LOGIC ---
+// Thay thế hàm cũ bằng hàm này:
+
 async function loadAccountInfo() {
     try {
-        const res = await fetch(`${API_BASE}/api/user_info`);
+        const res = await fetch(`${API_BASE}/api/user_info`, { credentials: "include" });
+        
         if (res.status === 200) {
             const userInfo = await res.json();
             document.getElementById('acc-email').innerText = userInfo.email;
             document.getElementById('acc-id').innerText = `#${userInfo.id}`;
-        } else {
-            // Chuyển hướng về login nếu phiên hết hạn
+        } else if (res.status === 401) {
+            // CHỈ redirect nếu server báo lỗi 401 (Chưa đăng nhập)
             window.location.href = '/'; 
+        } else {
+            // Các lỗi khác (404, 500...) chỉ log ra console, KHÔNG reload trang
+            console.warn("Lỗi API user_info:", res.status);
+            document.getElementById('acc-email').innerText = "Lỗi tải dữ liệu";
         }
     } catch (e) {
-        console.error("Lỗi tải thông tin tài khoản:", e);
+        console.error("Lỗi kết nối:", e);
+        // Không redirect ở đây để tránh vòng lặp reload nếu mạng chập chờn
     }
 }
 
@@ -678,5 +686,6 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
 </body>
 
 </html>
+
 
 
