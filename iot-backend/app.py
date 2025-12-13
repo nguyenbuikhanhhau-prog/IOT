@@ -9,6 +9,7 @@ import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
 import json
+import requests
 
 load_dotenv()
 
@@ -30,7 +31,7 @@ app.secret_key = os.getenv("SECRET_KEY", "iot-secret-key")
 app.permanent_session_lifetime = timedelta(hours=2)
 CORS(app)
 bcrypt = Bcrypt(app)
-
+CAMERA_SERVICE_URL = "http://localhost:5001"
 # ===============================
 # QUẢN LÝ KHO CHÂN GPIO
 # ===============================
@@ -70,7 +71,50 @@ users = [
 notifications = []
 dropdown_last_clear = 0
 latest_device_data = {}
+# Tìm hàm process_camera_capture cũ và THAY THẾ bằng đoạn này:
+def process_camera_capture(trigger_source="AUTO"):
+    try:
+        # 1. Gọi sang Service Camera (Port 5001) để lấy ảnh
+        # timeout=3 để nếu camera lỗi thì không treo backend
+        response = requests.get(f"{CAMERA_SERVICE_URL}/snapshot", timeout=3)
 
+        if response.status_code == 200:
+            # 2. Nếu chụp thành công -> Lưu dữ liệu ảnh vào file
+            filename = f"capture_{int(time.time())}.jpg"
+            # Đảm bảo thư mục tồn tại: static/captures
+            save_path = os.path.join("static", "captures", filename)
+
+            # Tạo thư mục nếu chưa có
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+            with open(save_path, 'wb') as f:
+                f.write(response.content) # Ghi dữ liệu nhị phân (ảnh)
+
+            # 3. Cập nhật vào danh sách hiển thị
+            timestamp = datetime.now().strftime("%H:%M:%S %d/%m")
+            sensor_state["images"].insert(0, {
+                "filename": f"captures/{filename}", 
+                "time": timestamp
+            })
+
+            # Xóa bớt nếu quá 10 ảnh
+            if len(sensor_state["images"]) > 10:
+                old_img = sensor_state["images"].pop()
+                try: os.remove(os.path.join("static", old_img["filename"]))
+                except: pass
+
+            # 4. Gửi thông báo
+            msg = "PHÁT HIỆN NGƯỜI (Đã chụp ảnh)" if trigger_source == "AUTO" else "Đã chụp ảnh thủ công"
+            add_notification("Camera AI", msg, "System" if trigger_source == "AUTO" else "User")
+            print(f"📸 Đã lưu ảnh từ Camera Service: {filename}")
+
+        elif response.status_code == 409:
+            print("⚠️ Camera đang bận Stream, không thể chụp ảnh.")
+            add_notification("Camera AI", "Phát hiện người (Camera đang bận stream)", "System")
+
+    except Exception as e:
+        print(f"❌ Lỗi kết nối tới Camera Service: {e}")
+        add_notification("Hệ thống", "Mất kết nối Camera", "Lỗi")
 def add_notification(name, action, user="System"):
     ts_str = datetime.now().strftime("%H:%M:%S %d/%m")
     notifications.insert(0, {
@@ -307,3 +351,4 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
