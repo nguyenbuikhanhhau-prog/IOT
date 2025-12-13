@@ -4,7 +4,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import os, string, random, time
-import threading  # <--- ĐÃ THÊM THƯ VIỆN NÀY (QUAN TRỌNG)
+import threading # QUAN TRỌNG: Để chạy MQTT song song
 import sendgrid
 from sendgrid.helpers.mail import Mail
 import paho.mqtt.client as mqtt
@@ -34,10 +34,10 @@ bcrypt = Bcrypt(app)
 # ===============================
 # QUẢN LÝ KHO CHÂN GPIO (SAFE PIN WAREHOUSE)
 # ===============================
-# Danh sách các chân an toàn trên ESP32
-SAFE_GPIO_POOL = [2, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
+# Loại bỏ chân 4 (đang dùng cho DHT11) để tránh xung đột
+SAFE_GPIO_POOL = [2, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
 
-# Dữ liệu thiết bị hiện tại (Đã chỉnh PIN 2 cho đèn Onboard)
+# Dữ liệu thiết bị hiện tại
 output_devices = [
     {
         "id": 1,
@@ -103,10 +103,10 @@ def on_message(client, userdata, msg):
         print("❌ MQTT parse error:", e)
 
 # ===============================
-# API ROUTES
+# API ROUTES QUẢN LÝ THIẾT BỊ
 # ===============================
 
-# 1. Thêm thiết bị
+# 1. Thêm thiết bị (ID tăng dần)
 @app.route("/api/devices", methods=["POST"])
 def add_device():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -117,9 +117,15 @@ def add_device():
     data = request.json
     name = data.get("name", "Thiết bị mới")
     
+    # Lấy chân từ kho
     assigned_pin = SAFE_GPIO_POOL.pop(0) 
     
-    new_id = int(time.time()) 
+    # Logic ID tăng dần
+    if output_devices:
+        new_id = max(d["id"] for d in output_devices) + 1
+    else:
+        new_id = 1
+    
     new_device = {
         "id": new_id,
         "name": name,
@@ -143,10 +149,11 @@ def delete_device(dev_id):
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     
     if dev:
+        # Trả PIN về kho
         SAFE_GPIO_POOL.append(dev["pin"])
         SAFE_GPIO_POOL.sort() 
         
-        # Gửi lệnh tắt trước khi xóa
+        # Gửi lệnh tắt an toàn
         mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": "OFF"}))
         
         output_devices = [d for d in output_devices if d["id"] != dev_id]
@@ -173,7 +180,7 @@ def rename_device(dev_id):
         
     return jsonify({"success": False, "message": "Device not found or invalid name"}), 400
 
-# 4. Lấy danh sách thiết bị
+# 4. Lấy danh sách
 @app.route("/api/devices", methods=["GET"])
 def get_devices_list():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
