@@ -111,10 +111,27 @@ mqtt_client.on_message = on_message
 mqtt_client.connect(MQTT_HOST, MQTT_PORT)
 mqtt_client.loop_start()
 
+# --- API ĐỔI TÊN THIẾT BỊ ---
+@app.route("/api/devices/<int:dev_id>/rename", methods=["POST"])
+def rename_device(dev_id):
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    new_name = data.get("name")
+    
+    # Tìm thiết bị
+    dev = next((d for d in output_devices if d["id"] == dev_id), None)
+    
+    if dev and new_name:
+        old_name = dev["name"]
+        dev["name"] = new_name
+        add_notification(old_name, f"ĐỔI TÊN THÀNH: {new_name}", session.get("email"))
+        return jsonify({"success": True})
+        
+    return jsonify({"success": False, "message": "Device not found or invalid name"}), 400
 # ===============================
 # API: THÊM / XÓA / SỬA THIẾT BỊ
 # ===============================
-
 # 1. Thêm thiết bị (Tự động lấy chân từ kho)
 @app.route("/api/devices", methods=["POST"])
 def add_device():
@@ -286,3 +303,4 @@ def get_user_info():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
