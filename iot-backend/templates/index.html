@@ -581,7 +581,32 @@
 
             const tempLocal = (d.temp && d.temp !== "--") ? d.temp.toFixed(1) + "°C" : "--";
             const humLocal = (d.hum && d.hum !== "--") ? d.hum.toFixed(1) + "%" : "--";
-            const pirText = d.pir === 1 ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` : `<span style="color:#95a5a6">Không</span>`;
+         // ... trong hàm renderSensorPanel ...
+
+// SỬA: Dùng == 1 để bắt cả số 1 và chuỗi "1"
+const pirText = d.pir == 1 
+    ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` 
+    : `<span style="color:#95a5a6">Không</span>`;
+
+// SỬA: Logic popup cảnh báo
+if (lastPirState[d.id] == 0 && d.pir == 1) { 
+    Swal.fire({ 
+        toast: true, 
+        position: 'top-end', 
+        icon: 'warning', 
+        title: 'CẢNH BÁO CÓ NGƯỜI !', 
+        showConfirmButton: false, 
+        timer: 3000, 
+        timerProgressBar: true, 
+        background: '#fdede9', 
+        color: '#c0392b', 
+        iconColor: '#e74c3c' 
+    }); 
+    const bell = document.getElementById('bell-icon'); 
+    bell.classList.add('shake'); 
+    setTimeout(() => bell.classList.remove('shake'), 500);
+}
+lastPirState[d.id] = d.pir; // Lưu lại trạng thái
             
             const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
             const humRemote = (d.hum2 && d.hum2 !== "--") ? d.hum2.toFixed(1) + "%" : "--";
@@ -753,3 +778,4 @@
     </script>
 </body>
 </html>
+
