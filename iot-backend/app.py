@@ -124,33 +124,39 @@ def on_connect(client, userdata, flags, rc):
     print("🔌 MQTT connected:", rc)
     client.subscribe([(MQTT_TOPIC, 0), (MQTT_CAPTURE_TOPIC, 0)])
 
+# Tìm hàm on_message cũ và thay bằng hàm này:
 def on_message(client, userdata, msg):
     global latest_device_data, last_trigger_time
     try:
         payload = msg.payload.decode()
-        
-        # Xử lý lệnh chụp ảnh chủ động
+        print(f"📩 [DEBUG MQTT] Topic: {msg.topic} | Msg: {payload}") # <--- IN RA ĐỂ KIỂM TRA
+
+        # 1. Xử lý lệnh chụp ảnh chủ động
         if msg.topic == MQTT_CAPTURE_TOPIC:
+            print("📸 Nhận lệnh CAPTURE từ MQTT!")
             if time.time() - last_trigger_time > 5:
-                print("🚨 ESP32 Trigger: Chụp ảnh!")
                 threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
                 last_trigger_time = time.time()
             return
-
-        # Xử lý dữ liệu cảm biến
+        # 2. Xử lý dữ liệu cảm biến (JSON)
         if msg.topic == MQTT_TOPIC:
-            data = json.loads(payload)
-            latest_device_data.update(data)
-            
-            # Logic phát hiện người (PIR)
-            if "pir" in data and int(data["pir"]) == 1:
-                print(f"🔥 [PIR DETECTED] Có người! (Data: {data})")
-                if time.time() - last_trigger_time > 5:
-                    threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
-                    last_trigger_time = time.time()
-                        
+            try:
+                data = json.loads(payload)
+                latest_device_data.update(data)
+                
+                # Check PIR
+                if "pir" in data and int(data["pir"]) == 1:
+                    print(f"🔥 [PIR = 1] Phát hiện người -> Gọi Camera...")
+                    if time.time() - last_trigger_time > 5:
+                        threading.Thread(target=process_camera_capture, args=("AUTO",)).start()
+                        last_trigger_time = time.time()
+                    else:
+                        print("⏳ Đang chờ (Debounce 5s)...")
+            except json.JSONDecodeError:
+                print(f"⚠️ Lỗi: '{payload}' không phải là JSON hợp lệ!")
+
     except Exception as e:
-        print("❌ MQTT Error:", e)
+        print("❌ Lỗi xử lý MQTT:", e)
 
 # ===============================
 # 6. API ROUTES
@@ -313,3 +319,4 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
