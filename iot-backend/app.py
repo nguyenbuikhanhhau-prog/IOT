@@ -33,9 +33,7 @@ bcrypt = Bcrypt(app)
 # ===============================
 # QUẢN LÝ KHO CHÂN GPIO (SAFE PIN WAREHOUSE)
 # ===============================
-# Danh sách các chân an toàn trên ESP32 (Output tốt, không ảnh hưởng Boot)
-# GPIO 2: Onboard LED (Thường dùng test)
-# 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33
+# Danh sách các chân an toàn trên ESP32
 SAFE_GPIO_POOL = [2, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33]
 
 # Dữ liệu thiết bị hiện tại
@@ -43,7 +41,7 @@ output_devices = [
     {
         "id": 1,
         "name": "Đèn Onboard (Test)",
-        "pin": 2,  # Đang dùng chân 2
+        "pin": 2, 
         "status": "OFF",
         "last_on_time": None,
         "total_on_time": 0,
@@ -59,7 +57,7 @@ def init_pin_warehouse():
             SAFE_GPIO_POOL.remove(pin)
     print(f"📦 Kho chân an toàn còn lại: {SAFE_GPIO_POOL}")
 
-init_pin_warehouse() # Chạy ngay khi server start
+init_pin_warehouse() 
 
 # ===============================
 # DỮ LIỆU & BIẾN PHỤ TRỢ
@@ -112,10 +110,10 @@ mqtt_client.connect(MQTT_HOST, MQTT_PORT)
 mqtt_client.loop_start()
 
 # ===============================
-# API: THÊM / XÓA / SỬA THIẾT BỊ
+# API: THÊM / XÓA / SỬA / LẤY THIẾT BỊ
 # ===============================
 
-# 1. Thêm thiết bị (Tự động lấy chân từ kho)
+# 1. Thêm thiết bị
 @app.route("/api/devices", methods=["POST"])
 def add_device():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -126,14 +124,13 @@ def add_device():
     data = request.json
     name = data.get("name", "Thiết bị mới")
     
-    # Lấy chân từ kho
     assigned_pin = SAFE_GPIO_POOL.pop(0) 
     
-    new_id = int(time.time()) # Tạo ID ngẫu nhiên theo thời gian
+    new_id = int(time.time()) 
     new_device = {
         "id": new_id,
         "name": name,
-        "pin": assigned_pin, # Gán chân vừa lấy
+        "pin": assigned_pin,
         "status": "OFF",
         "last_on_time": None,
         "total_on_time": 0,
@@ -144,20 +141,18 @@ def add_device():
     add_notification(name, f"ĐÃ THÊM (PIN {assigned_pin})", session.get("email"))
     return jsonify({"success": True, "device": new_device})
 
-# 2. Xóa thiết bị (Trả chân về kho)
+# 2. Xóa thiết bị
 @app.route("/api/devices/<int:dev_id>", methods=["DELETE"])
 def delete_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     
-    global output_devices
+    global output_devices # Quan trọng: Phải khai báo global để sửa list
     dev = next((d for d in output_devices if d["id"] == dev_id), None)
     
     if dev:
-        # Trả chân về kho
         SAFE_GPIO_POOL.append(dev["pin"])
-        SAFE_GPIO_POOL.sort() # Sắp xếp lại cho đẹp
+        SAFE_GPIO_POOL.sort() 
         
-        # Gửi lệnh tắt thiết bị đó trước khi xóa để an toàn
         mqtt_client.publish(MQTT_CONTROL_TOPIC, json.dumps({"pin": dev["pin"], "status": "OFF"}))
         
         output_devices = [d for d in output_devices if d["id"] != dev_id]
@@ -166,17 +161,34 @@ def delete_device(dev_id):
         
     return jsonify({"success": False, "message": "Not found"}), 404
 
-# 3. Lấy danh sách
+# 3. Đổi tên thiết bị
+@app.route("/api/devices/<int:dev_id>/rename", methods=["POST"])
+def rename_device(dev_id):
+    if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json
+    new_name = data.get("name")
+    
+    dev = next((d for d in output_devices if d["id"] == dev_id), None)
+    
+    if dev and new_name:
+        old_name = dev["name"]
+        dev["name"] = new_name
+        add_notification(old_name, f"ĐỔI TÊN THÀNH: {new_name}", session.get("email"))
+        return jsonify({"success": True})
+        
+    return jsonify({"success": False, "message": "Device not found or invalid name"}), 400
+
+# 4. Lấy danh sách thiết bị
 @app.route("/api/devices", methods=["GET"])
 def get_devices_list():
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
     resp = json.loads(json.dumps(output_devices))
-    if latest_device_data:
-        # Giả sử thiết bị đầu tiên có cảm biến
-        if len(resp) > 0: resp[0].update(latest_device_data)
+    if latest_device_data and len(resp) > 0:
+        resp[0].update(latest_device_data)
     return jsonify(resp)
 
-# 4. Điều khiển BẬT/TẮT
+# 5. Điều khiển BẬT/TẮT
 @app.route("/api/devices/<int:dev_id>/<action>", methods=["POST"])
 def control_device(dev_id, action):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -187,11 +199,9 @@ def control_device(dev_id, action):
     if dev:
         dev["status"] = action
         
-        # Gửi lệnh xuống ESP32 kèm theo số PIN cụ thể
         mqtt_payload = json.dumps({"pin": dev["pin"], "status": action})
         mqtt_client.publish(MQTT_CONTROL_TOPIC, mqtt_payload)
         
-        # Logic ghi log thời gian
         if action == "ON":
             dev["last_on_time"] = time.time()
         elif action == "OFF" and dev["last_on_time"]:
@@ -212,7 +222,6 @@ def control_device(dev_id, action):
 # ===============================
 # CÁC API KHÁC (Thông báo, User, Auth...)
 # ===============================
-# (Giữ nguyên các phần login, register, history, stats như cũ...)
 @app.route("/")
 def index():
     if "user_id" in session: return render_template("index.html")
@@ -284,5 +293,53 @@ def get_user_info():
     user = next((u for u in users if u["id"] == session["user_id"]), None)
     return jsonify({"id": user["id"], "email": user["email"]}) if user else (jsonify({"error": "Not found"}), 404)
 
+# HELPER: Generate Password (nếu cần)
+def generate_random_password(length=8):
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
+
+# AUTH: Forgot & Change Password
+@app.route("/forgot_password", methods=["POST"])
+def forgot_password():
+    data = request.json
+    email = data.get("email")
+    user = next((u for u in users if u["email"] == email), None)
+    if user:
+        new_password = generate_random_password()
+        user["password"] = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        if send_password_email(email, new_password):
+            return jsonify({"success": True, "message": "Mật khẩu mới đã được gửi về email"})
+        else:
+            return jsonify({"success": False, "message": "Lỗi gửi email"}), 500
+    return jsonify({"success": True, "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi"})
+
+@app.route("/change_password", methods=["POST"])
+def change_password():
+    if "user_id" not in session: return jsonify({"success": False}), 403
+    data = request.json
+    old_pw = data.get("old_password")
+    new_pw = data.get("new_password")
+    user = next((u for u in users if u["id"] == session["user_id"]), None)
+    if not bcrypt.check_password_hash(user["password"], old_pw):
+        return jsonify({"success": False, "message": "Sai mật khẩu cũ"}), 400
+    user["password"] = bcrypt.generate_password_hash(new_pw).decode("utf-8")
+    return jsonify({"success": True})
+
+def send_password_email(to_email, new_password):
+    try:
+        sg = sendgrid.SendGridAPIClient(SENDGRID_API_KEY)
+        message = Mail(
+            from_email=EMAIL_USER,
+            to_emails=to_email,
+            subject="Reset mật khẩu - IOT Platform",
+            plain_text_content=f"Mật khẩu mới của bạn là: {new_password}\n\nVui lòng đăng nhập và đổi mật khẩu ngay."
+        )
+        response = sg.send(message)
+        return response.status_code == 202
+    except Exception as e:
+        print("❌ SendGrid error:", e)
+        return False
+
 if __name__ == "__main__":
+    print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True)
