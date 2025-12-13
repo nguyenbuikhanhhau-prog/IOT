@@ -14,6 +14,8 @@ from email.mime.text import MIMEText # Thêm thư viện này
 import string
 import random
 import time
+import sendgrid
+from sendgrid.helpers.mail import Mail
 
 load_dotenv() # Tải biến môi trường từ file .env
 # Biến lưu mốc thời gian xóa thông báo
@@ -53,33 +55,30 @@ current_user = None # Biến để lưu trạng thái đăng nhập đơn giản
 # LOGIC HỖ TRỢ (GỬI EMAIL)
 # ==========================================    
 def generate_random_password(length=8):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for i in range(length))
+    import string, random
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
 
-def send_password_email(recipient_email, new_password):
+import sendgrid
+from sendgrid.helpers.mail import Mail
+
+def send_password_email(to_email, new_password):
     try:
-        print("📨 Start send mail to:", recipient_email)
+        sg = sendgrid.SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
+        message = Mail(
+            from_email=EMAIL_USER,
+            to_emails=to_email,
+            subject="Mật khẩu mới - IOT Platform",
+            plain_text_content=f"""
+Mật khẩu mới của bạn là: {new_password}
 
-        msg = MIMEText(
-            f"Mật khẩu mới của bạn là: {new_password}\n\nVui lòng đăng nhập và đổi mật khẩu.",
-            "plain",
-            "utf-8"
+Vui lòng đăng nhập và đổi mật khẩu ngay.
+            """
         )
-        msg["Subject"] = "Mật khẩu mới cho hệ thống IOT"
-        msg["From"] = EMAIL_USER
-        msg["To"] = recipient_email
-
-        print("🔐 Connecting SMTP...")
-
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-            server.login(EMAIL_USER, EMAIL_PASSWORD)
-            server.sendmail(EMAIL_USER, recipient_email, msg.as_string())
-
-        print("✅ Email sent OK")
+        sg.send(message)
         return True
-
     except Exception as e:
-        print("❌ SMTP ERROR >>>", repr(e))
+        print("SendGrid error:", e)
         return False
 
 # =========================================
@@ -127,22 +126,33 @@ def register():
 @app.route("/forgot_password", methods=["POST"])
 def forgot_password():
     data = request.json
-    email = data.get('email')
+    email = data.get("email")
+
     user = next((u for u in users if u["email"] == email), None)
-    
+
     if user:
         new_password = generate_random_password()
-        
+
+        # Hash mật khẩu mới
+        user["password"] = bcrypt.generate_password_hash(new_password).decode("utf-8")
+
+        # Gửi email
         if send_password_email(email, new_password):
-            # Cập nhật mật khẩu mới (đã mã hóa) vào Database (Mockup)
-            user["password"] = bcrypt.generate_password_hash(new_password).decode('utf-8')
-            add_notification("Hệ thống", f"Gửi mật khẩu mới cho {email}", "System")
-            return jsonify({"success": True, "message": "Mật khẩu mới đã được gửi về email của bạn."})
+            return jsonify({
+                "success": True,
+                "message": "Mật khẩu mới đã được gửi về email."
+            })
         else:
-            return jsonify({"success": False, "message": "Lỗi hệ thống khi gửi email."}), 500
-    
-    # Luôn trả về thông báo chung để tránh tiết lộ email nào tồn tại
-    return jsonify({"success": True, "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi đi."})
+            return jsonify({
+                "success": False,
+                "message": "Lỗi khi gửi email."
+            }), 500
+
+    # Không tiết lộ email có tồn tại hay không
+    return jsonify({
+        "success": True,
+        "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi."
+    })
 
 @app.route("/logout", methods=["POST"])
 def logout():
@@ -436,6 +446,7 @@ if __name__ == '__main__':
     print("🚀 App running port 5000")
 
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
