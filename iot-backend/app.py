@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, session
+from datetime import timedelta
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
@@ -18,6 +19,8 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 # FLASK INIT
 # ===============================
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "iot-secret-key")  # BẮT BUỘC
+app.permanent_session_lifetime = timedelta(hours=2)
 CORS(app)
 bcrypt = Bcrypt(app)
 
@@ -31,8 +34,6 @@ users = [
         "password": bcrypt.generate_password_hash("admin").decode("utf-8")
     }
 ]
-
-current_user = None
 
 # ===============================
 # HELPER FUNCTIONS
@@ -71,7 +72,7 @@ Vui lòng đăng nhập và đổi mật khẩu ngay sau khi vào hệ thống.
 # ===============================
 @app.route("/")
 def index():
-    if current_user:
+    if "user_id" in session:
         return render_template("index.html")
     return render_template("login.html")
 
@@ -96,7 +97,6 @@ def register():
 
 @app.route("/login", methods=["POST"])
 def login():
-    global current_user
     data = request.json
     email = data.get("email")
     password = data.get("password")
@@ -104,16 +104,18 @@ def login():
     user = next((u for u in users if u["email"] == email), None)
 
     if user and bcrypt.check_password_hash(user["password"], password):
-        current_user = user
-        return jsonify({"success": True, "message": "Đăng nhập thành công"})
+        session.permanent = True
+        session["user_id"] = user["id"]
+        session["email"] = user["email"]
+
+        return jsonify({"success": True})
 
     return jsonify({"success": False, "message": "Sai email hoặc mật khẩu"}), 401
 
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    global current_user
-    current_user = None
+    session.clear()
     return jsonify({"success": True})
 
 
@@ -145,23 +147,31 @@ def forgot_password():
         "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi"
     })
 
-
-@app.route("/change_password", methods=["POST"])
+@@app.route("/change_password", methods=["POST"])
 def change_password():
-    if not current_user:
-        return jsonify({"success": False, "message": "Chưa đăng nhập"}), 403
+    if "user_id" not in session:
+        return jsonify({"success": False}), 403
 
     data = request.json
     old_pw = data.get("old_password")
     new_pw = data.get("new_password")
 
-    if not bcrypt.check_password_hash(current_user["password"], old_pw):
-        return jsonify({"success": False, "message": "Mật khẩu cũ sai"}), 400
+    user = next((u for u in users if u["id"] == session["user_id"]), None)
 
-    current_user["password"] = bcrypt.generate_password_hash(new_pw).decode("utf-8")
+    if not bcrypt.check_password_hash(user["password"], old_pw):
+        return jsonify({"success": False, "message": "Sai mật khẩu cũ"}), 400
 
-    return jsonify({"success": True, "message": "Đổi mật khẩu thành công"})
+    user["password"] = bcrypt.generate_password_hash(new_pw).decode("utf-8")
+    return jsonify({"success": True})
 
+@app.route("/api/user_status")
+def user_status():
+    if "user_id" in session:
+        return jsonify({
+            "logged_in": True,
+            "email": session["email"]
+        })
+    return jsonify({"logged_in": False})
 
 # ===============================
 # RUN
@@ -169,3 +179,4 @@ def change_password():
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
