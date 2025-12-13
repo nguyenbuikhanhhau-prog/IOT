@@ -324,16 +324,18 @@
         // --- CORE UPDATE FUNCTION ---
         async function updateDashboard() { 
             try { 
-                const resDev = await fetch(`${API_BASE}/api/devices`); 
+const resDev = await fetch(`${API_BASE}/api/devices`, {
+    credentials: "include" // 🔥 BẮT BUỘC
+});
                 const devices = await resDev.json(); 
                 
                 if(document.getElementById('view-notification').classList.contains('active')) { 
-                    const resAll = await fetch(`${API_BASE}/api/notifications`); 
+                    const resAll = await fetch(`${API_BASE}/api/notifications`, { credentials: "include" }); 
                     const allNotis = await resAll.json();
                     renderNotificationPage(allNotis); 
                 } 
 
-                const resDrop = await fetch(`${API_BASE}/api/notifications/dropdown`);
+                const resDrop = await fetch(`${API_BASE}/api/notifications/dropdown`, { credentials: "include" });
                 const dropNotis = await resDrop.json();
                 
                 renderControlView(devices); 
@@ -392,7 +394,7 @@
             }
 
             try {
-                const res = await fetch(`${API_BASE}/api/devices/${id}/history`); 
+                const res = await fetch(`${API_BASE}/api/devices/${id}/history`, { credentials: "include" }); 
                 const logs = await res.json();
                 
                 if(logs.length === 0){ 
@@ -540,15 +542,15 @@
         function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
         function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
         async function handleAddDevice() { const name = document.getElementById('new-dev-name').value; if(!name) return Swal.fire("Lỗi", "Vui lòng nhập tên", "error"); await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); document.getElementById('new-dev-name').value = ""; updateDashboard(); Swal.fire("Thành công", "Đã thêm thiết bị", "success"); }
-        async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}); updateDashboard(); }
-        function deleteDevice(id) { Swal.fire({ title: 'Xóa thiết bị?', text: "", icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa ngay', cancelButtonText: 'Hủy', confirmButtonColor: '#e74c3c' }).then(async (res) => { if (res.isConfirmed) { await fetch(`${API_BASE}/api/devices/${id}`, {method: "DELETE"}); updateDashboard(); Swal.fire("Đã xóa", "", "success"); } }); }
+        async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}, {credentials: "include"}); updateDashboard(); }
+        function deleteDevice(id) { Swal.fire({ title: 'Xóa thiết bị?', text: "", icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa ngay', cancelButtonText: 'Hủy', confirmButtonColor: '#e74c3c' }).then(async (res) => { if (res.isConfirmed) { await fetch(`${API_BASE}/api/devices/${id}`, {method: "DELETE"}, {credentials: "include"}); updateDashboard(); Swal.fire("Đã xóa", "", "success"); } }); }
         
         // --- CHARTS ---
         function initCharts(data5m, data1h) {
             const ctx5m = document.getElementById('chart5m').getContext('2d'); if(chart5m) chart5m.destroy(); chart5m = new Chart(ctx5m, { type: 'line', data: { labels: data5m.map(d => d.time), datasets: [{ label: 'Nhiệt độ (°C)', data: data5m.map(d => d.temp), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.1)', borderWidth: 2, tension: 0.3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
             const ctx1h = document.getElementById('chart1h').getContext('2d'); if(chart1h) chart1h.destroy(); chart1h = new Chart(ctx1h, { type: 'bar', data: { labels: data1h.map(d => d.time), datasets: [{ label: 'Nhiệt độ TB', data: data1h.map(d => d.temp), backgroundColor: '#e67e22', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
         }
-        async function loadCharts() { try { const res = await fetch(`${API_BASE}/api/stats`); const data = await res.json(); initCharts(data.chart_5m, data.chart_1h); } catch(e) { console.error("Lỗi chart"); } }
+        async function loadCharts() { try { const res = await fetch(`${API_BASE}/api/stats`, {credentials: "include"}); const data = await res.json(); initCharts(data.chart_5m, data.chart_1h); } catch(e) { console.error("Lỗi chart"); } }
 
         // --- INIT ---
         const videoEl = document.getElementById('videoStreamElement');
@@ -562,8 +564,6 @@
         function showImage(url, timestamp) { Swal.fire({ imageUrl: url, imageAlt: 'Evidence', title: timestamp, width: 600, showConfirmButton: false }); lastSeenImageTime = timestamp; localStorage.setItem('lastSeenImageTime', timestamp); updateDashboard(); }
 
         setInterval(loadCharts, 43200000); 
-        updateDashboard(); 
-        setInterval(updateDashboard, 1000); 
         
         window.onclick = function(event) { 
             if (!event.target.closest('.notify-box') && !event.target.closest('.notify-dropdown')) { 
@@ -591,13 +591,12 @@ async function loadAccountInfo() {
 
 async function handleLogout() {
     try {
-        const response = await fetch('/logout', { method: 'POST' });
-        // Dù API có trả về thành công hay không, chúng ta luôn chuyển hướng về trang chính (/)
-        // vì route '/' của Flask đã được cấu hình để hiển thị login.html nếu chưa đăng nhập.
-        window.location.href = '/'; 
-    } catch (error) {
-        // Trong trường hợp mất kết nối, vẫn chuyển hướng để người dùng refresh trang
-        window.location.href = '/'; 
+        await fetch('/logout', {
+            method: 'POST',
+            credentials: 'include' // 🔥 BẮT BUỘC
+        });
+    } finally {
+        window.location.href = '/';
     }
 }
 
@@ -617,6 +616,7 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
     try {
         const response = await fetch('/change_password', {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ old_password: oldPass, new_password: newPass })
         });
@@ -641,7 +641,28 @@ switchView = function(viewName, btn, title) {
         loadAccountInfo();
     }
 }
+        async function checkLogin() {
+    try {
+        const res = await fetch("/api/user_status", {
+            credentials: "include" // 🔥 CỰC QUAN TRỌNG
+        });
+
+        const data = await res.json();
+        if (!data.logged_in) {
+            window.location.href = "/";
+        }
+    } catch (e) {
+        window.location.href = "/";
+    }
+}
+(async () => {
+    await checkLogin();   // 🔐 CHẶN TRƯỚC
+    updateDashboard();
+    setInterval(updateDashboard, 1000);
+})();
+
     </script>
 </body>
 
 </html>
+
