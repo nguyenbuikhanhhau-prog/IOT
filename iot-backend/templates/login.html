@@ -248,6 +248,17 @@
                     <a href="#" id="show-login" style="display:none;">Quay lại Đăng nhập</a>
                 </div>
             </div>
+.spam-note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.spam-note i {
+    color: #f39c12;
+    margin-right: 4px;
+}
 
             <div class="author-info">
                 <strong>Author:</strong> Nguyễn Bùi Khánh Hậu | <strong>MSSV:</strong> 42200312
@@ -350,7 +361,15 @@
 
         const data = await res.json();
 
-        if (data.success) {
+if (data.success) {
+    statusMessage.className = "message success";
+    statusMessage.innerHTML = `
+        ${data.message || "Nếu email tồn tại, mật khẩu mới đã được gửi."}
+        <br><small>⚠️ Nếu không thấy email, hãy kiểm tra <b>Thư rác / Spam</b>.</small>
+    `;
+    statusMessage.style.display = "block";
+}
+
             statusMessage.className = "message success";
             statusMessage.innerText = data.message || "Nếu email tồn tại, mật khẩu mới đã được gửi.";
         } else {
@@ -369,5 +388,6 @@
 </body>
 
 </html>
+
 
 
