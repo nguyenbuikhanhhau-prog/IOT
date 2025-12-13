@@ -302,8 +302,6 @@ def get_device_history(dev_id):
     # Lọc lịch sử từ danh sách thông báo
     device_history = [n for n in notifications if n['name'] == dev['name']]
     return jsonify(device_history)
-)
-
 @app.route("/api/devices/<int:device_id>/history")
 def device_history(device_id):
     return jsonify([])
@@ -466,3 +464,4 @@ print("🟢 MQTT client started")
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
