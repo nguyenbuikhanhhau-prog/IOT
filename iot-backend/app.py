@@ -147,7 +147,7 @@ def forgot_password():
         "message": "Nếu email tồn tại, mật khẩu mới sẽ được gửi"
     })
 
-@@app.route("/change_password", methods=["POST"])
+@app.route("/change_password", methods=["POST"])
 def change_password():
     if "user_id" not in session:
         return jsonify({"success": False}), 403
@@ -179,4 +179,5 @@ def user_status():
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
