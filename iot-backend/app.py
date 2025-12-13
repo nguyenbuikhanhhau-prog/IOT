@@ -174,6 +174,20 @@ def add_device():
     add_notification(name, f"ĐÃ THÊM (PIN {assigned_pin})", session.get("email"))
     return jsonify({"success": True, "device": new_device})
 
+@app.route("/api/camera/upload", methods=["POST"])
+def upload_camera():
+    img = request.files.get("image")
+    if not img:
+        return {"success": False}, 400
+
+    filename = f"capture_{int(time.time())}.jpg"
+    path = os.path.join("static", "captures", filename)
+    img.save(path)
+
+    add_notification("Camera AI", "PHÁT HIỆN NGƯỜI")
+
+    return {"success": True, "file": filename}
+
 @app.route("/api/devices/<int:dev_id>", methods=["DELETE"])
 def delete_device(dev_id):
     if "user_id" not in session: return jsonify({"error": "Unauthorized"}), 401
@@ -319,4 +333,5 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
