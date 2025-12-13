@@ -6,3 +6,4 @@ paho-mqtt
 gunicorn
 requests
 opencv-python-headless
+sendgrid
