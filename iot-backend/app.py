@@ -172,12 +172,27 @@ def user_status():
             "email": session["email"]
         })
     return jsonify({"logged_in": False})
-
+# === [THÊM ĐOẠN NÀY VÀO APP.PY] ===
+@app.route("/api/user_info", methods=["GET"])
+def get_user_info():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Tìm user trong danh sách mock database
+    user = next((u for u in users if u["id"] == session["user_id"]), None)
+    
+    if user:
+        return jsonify({
+            "id": user["id"],
+            "email": user["email"]
+        })
+    return jsonify({"error": "User not found"}), 404
 # ===============================
 # RUN
 # ===============================
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
