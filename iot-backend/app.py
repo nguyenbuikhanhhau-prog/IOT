@@ -340,6 +340,37 @@ def send_password_email(to_email, new_password):
         print("❌ SendGrid error:", e)
         return False
 
-if __name__ == "__main__":
-    print("🚀 Server running on port 5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+# ... (Các đoạn trên giữ nguyên) ...
+
+# ==========================================
+# 7. RUN (SỬA LẠI ĐOẠN NÀY)
+# ==========================================
+mqtt_client = mqtt.Client()
+
+def run_mqtt():
+    # Cấu hình MQTT
+    mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+    mqtt_client.tls_set()
+    mqtt_client.on_connect = on_mqtt_connect
+    mqtt_client.on_message = on_mqtt_message
+    
+    # Vòng lặp kết nối
+    while True:
+        try:
+            print("🔄 Đang kết nối MQTT...")
+            mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
+            mqtt_client.loop_forever()
+        except Exception as e:
+            print(f"⚠️ Lỗi kết nối MQTT: {e}")
+            time.sleep(5)
+
+threading.Thread(target=run_mqtt, daemon=True).start()
+
+hashed_password = bcrypt.generate_password_hash("admin").decode('utf-8')
+if not any(u['email'] == "admin@iot.com" for u in users):
+    users.append({"id": 1, "email": "admin@iot.com", "password": hashed_password})
+
+if __name__ == '__main__':
+    print("🚀 App running port 5000")
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
