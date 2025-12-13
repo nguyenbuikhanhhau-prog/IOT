@@ -6,11 +6,19 @@ from dotenv import load_dotenv
 import os, string, random, time
 import sendgrid
 from sendgrid.helpers.mail import Mail
+import paho.mqtt.client as mqtt
+import json
 
 # ===============================
 # LOAD ENV
 # ===============================
 load_dotenv()
+
+MQTT_HOST = os.getenv("MQTT_HOST")
+MQTT_PORT = 8883
+MQTT_USER = os.getenv("MQTT_USER")
+MQTT_PASS = os.getenv("MQTT_PASS")
+MQTT_TOPIC = "iot/devices/state"
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 EMAIL_USER = os.getenv("EMAIL_USER")
@@ -41,6 +49,22 @@ users = [
 def generate_random_password(length=8):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
+    
+latest_device_data = {}
+
+def on_connect(client, userdata, flags, rc):
+    print("🔌 MQTT connected:", rc)
+    client.subscribe(MQTT_TOPIC)
+
+def on_message(client, userdata, msg):
+    global latest_device_data
+    try:
+        payload = msg.payload.decode()
+        data = json.loads(payload)
+        latest_device_data = data
+        print("📥 MQTT data:", data)
+    except Exception as e:
+        print("❌ MQTT parse error:", e)
 
 
 def send_password_email(to_email, new_password):
@@ -76,6 +100,11 @@ def index():
         return render_template("index.html")
     return render_template("login.html")
 
+@app.route("/api/devices", methods=["GET"])
+def get_devices():
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify(latest_device_data)
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -187,12 +216,26 @@ def get_user_info():
             "email": user["email"]
         })
     return jsonify({"error": "User not found"}), 404
+    
+    mqtt_client = mqtt.Client()
+mqtt_client.username_pw_set(MQTT_USER, MQTT_PASS)
+mqtt_client.tls_set()
+
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+
+mqtt_client.connect(MQTT_HOST, MQTT_PORT)
+mqtt_client.loop_start()
+
+print("🟢 MQTT client started")
+
 # ===============================
 # RUN
 # ===============================
 if __name__ == "__main__":
     print("🚀 Server running on port 5000")
     app.run(host="0.0.0.0", port=5000, debug=True) 
+
 
 
 
