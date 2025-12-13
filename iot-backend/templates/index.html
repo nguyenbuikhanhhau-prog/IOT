@@ -333,6 +333,16 @@ function switchView(viewName, btn, title) {
     if (viewName !== 'camera') stopStream();
 }
 
+async function loadIoTData() {
+    const res = await fetch("/api/iot_data");
+    const json = await res.json();
+
+    if (json.success) {
+        document.getElementById("remote-data").innerText =
+            JSON.stringify(json.data, null, 2);
+    }
+}
+setInterval(loadIoTData, 2000);
 
         // --- CORE UPDATE FUNCTION ---
         async function updateDashboard() { 
@@ -686,6 +696,7 @@ document.getElementById('change-pass-form').addEventListener('submit', async (e)
 </body>
 
 </html>
+
 
 
 
