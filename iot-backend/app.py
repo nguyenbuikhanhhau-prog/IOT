@@ -26,7 +26,7 @@ MQTT_CAPTURE_TOPIC = "iot/devices/capture"
 
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 EMAIL_USER = os.getenv("EMAIL_USER")
-CAMERA_SERVICE_URL = "h https://flamelike-noninitially-adolfo.ngrok-free.dev"
+CAMERA_SERVICE_URL = "https://flamelike-noninitially-adolfo.ngrok-free.dev"
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "iot-secret-key")
@@ -333,6 +333,7 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
