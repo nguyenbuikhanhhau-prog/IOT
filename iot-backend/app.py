@@ -346,30 +346,27 @@ def send_email_sendgrid(to_email, new_password):
         print(f"❌ Lỗi SendGrid: {e}")
         return False
 
-@app.route("/api/forgot_password", methods=["POST"])
+@app.route("/forgot_password", methods=["POST"])
 def forgot_password():
-    data = request.json
+    data = request.get_json()
     email = data.get("email")
-    
-    # 1. Tìm user trong danh sách
-    user = next((u for u in users if u["email"] == email), None)
-    
-    if not user:
-        # Bảo mật: Không báo lỗi nếu email sai, chỉ báo đã gửi (nếu có)
-        # Nhưng để test thì mình báo lỗi 404
-        return jsonify({"success": False, "message": "Email không tồn tại trong hệ thống"}), 404
 
-    # 2. Tạo mật khẩu ngẫu nhiên 8 ký tự
-    new_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-    
-    # 3. Gửi email trước
-    if send_email_sendgrid(email, new_pass):
-        # 4. Nếu gửi thành công -> Cập nhật mật khẩu mới vào DB
-        user["password"] = bcrypt.generate_password_hash(new_pass).decode("utf-8")
-        print(f"✅ Đã reset pass cho {email}: {new_pass}")
-        return jsonify({"success": True, "message": "Đã gửi mật khẩu mới vào email!"})
-    else:
-        return jsonify({"success": False, "message": "Lỗi kết nối đến dịch vụ Email"}), 500
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify(success=False, message="Email không tồn tại"), 404
+
+    new_password = generate_random_password()
+    user.password = hash_password(new_password)
+    db.session.commit()
+
+    send_email(
+        to=email,
+        subject="Khôi phục mật khẩu",
+        content=f"Mật khẩu mới của bạn là: {new_password}"
+    )
+
+    return jsonify(success=True, message="Mật khẩu mới đã được gửi qua email")
+
 # ===============================
 # 7. RUN
 # ===============================
@@ -388,6 +385,7 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
