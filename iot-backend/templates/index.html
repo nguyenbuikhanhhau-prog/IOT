@@ -596,26 +596,35 @@
                 ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` 
                 : `<span style="color:#95a5a6">Không</span>`;
 
-            // === LOGIC CẢNH BÁO MỚI (HEADER ALERT) ===
+            // === LOGIC HỢP NHẤT: HEADER ALERT + POPUP TOAST ===
             const alertBanner = document.getElementById('header-alert');
+            
+            // 1. Xử lý hiển thị dòng chữ trên Header
             if (d.pir == 1) {
-                // Hiện cảnh báo
                 if (alertBanner) alertBanner.style.display = 'flex';
-                
-                // Rung chuông nếu mới phát hiện
-                if (lastPirState[d.id] == 0) {
-                    const bell = document.getElementById('bell-icon'); 
-                    if(bell) {
-                        bell.classList.add('shake'); 
-                        setTimeout(() => bell.classList.remove('shake'), 500);
-                    }
-                }
             } else {
-                // Ẩn cảnh báo
                 if (alertBanner) alertBanner.style.display = 'none';
             }
+
+            // 2. Xử lý Popup & Rung chuông (Chỉ kích hoạt 1 lần KHI MỚI phát hiện)
+            if (d.pir == 1 && lastPirState[d.id] == 0) {
+                // A. Kích hoạt Popup (Toast)
+                const toastEl = document.getElementById('alarmToast');
+                if (toastEl) {
+                    const toast = new bootstrap.Toast(toastEl);
+                    toast.show();
+                }
+                // B. Rung chuông
+                const bell = document.getElementById('bell-icon'); 
+                if(bell) {
+                    bell.classList.add('shake'); 
+                    setTimeout(() => bell.classList.remove('shake'), 500);
+                }
+            }
+
+            // 3. Cập nhật trạng thái cũ
             lastPirState[d.id] = d.pir;
-            // ==========================================
+            // ============================================================
 
             const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
             const humRemote = (d.hum2 && d.hum2 !== "--") ? d.hum2.toFixed(1) + "%" : "--";
@@ -777,5 +786,16 @@
             }, 1000);
         })();
     </script>
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+  <div id="alarmToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas fa-user-secret fa-lg me-2"></i>
+        <strong>CẢNH BÁO:</strong> Phát hiện có người!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
