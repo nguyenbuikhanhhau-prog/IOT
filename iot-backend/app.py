@@ -314,7 +314,62 @@ def change_password():
     if not bcrypt.check_password_hash(user["password"], data.get("old_password")): return jsonify({"success": False}), 400
     user["password"] = bcrypt.generate_password_hash(data.get("new_password")).decode("utf-8")
     return jsonify({"success": True})
+# ===============================
+# THÊM CODE XỬ LÝ QUÊN MẬT KHẨU (SENDGRID)
+# ===============================
 
+def send_email_sendgrid(to_email, new_password):
+    """Hàm gửi email qua SendGrid"""
+    subject = "Hajju IoT - Cấp lại mật khẩu mới"
+    content = f"""
+    <h3>Yêu cầu cấp lại mật khẩu</h3>
+    <p>Hệ thống đã tạo một mật khẩu mới cho tài khoản <b>{to_email}</b>.</p>
+    <p>Mật khẩu mới của bạn là: <b style="font-size: 18px; color: #d35400;">{new_password}</b></p>
+    <p>Vui lòng đăng nhập và đổi lại mật khẩu ngay.</p>
+    <br>
+    <p>Trân trọng,<br>Hajju IoT Team</p>
+    """
+    
+    message = Mail(
+        from_email=os.getenv("EMAIL_USER"), # Email đã verify trên SendGrid
+        to_emails=to_email,
+        subject=subject,
+        html_content=content
+    )
+    
+    try:
+        sg = sendgrid.SendGridAPIClient(api_key=os.getenv("SENDGRID_API_KEY"))
+        response = sg.send(message)
+        print(f"📧 SendGrid Status: {response.status_code}")
+        return response.status_code in [200, 202]
+    except Exception as e:
+        print(f"❌ Lỗi SendGrid: {e}")
+        return False
+
+@app.route("/api/forgot_password", methods=["POST"])
+def forgot_password():
+    data = request.json
+    email = data.get("email")
+    
+    # 1. Tìm user trong danh sách
+    user = next((u for u in users if u["email"] == email), None)
+    
+    if not user:
+        # Bảo mật: Không báo lỗi nếu email sai, chỉ báo đã gửi (nếu có)
+        # Nhưng để test thì mình báo lỗi 404
+        return jsonify({"success": False, "message": "Email không tồn tại trong hệ thống"}), 404
+
+    # 2. Tạo mật khẩu ngẫu nhiên 8 ký tự
+    new_pass = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
+    # 3. Gửi email trước
+    if send_email_sendgrid(email, new_pass):
+        # 4. Nếu gửi thành công -> Cập nhật mật khẩu mới vào DB
+        user["password"] = bcrypt.generate_password_hash(new_pass).decode("utf-8")
+        print(f"✅ Đã reset pass cho {email}: {new_pass}")
+        return jsonify({"success": True, "message": "Đã gửi mật khẩu mới vào email!"})
+    else:
+        return jsonify({"success": False, "message": "Lỗi kết nối đến dịch vụ Email"}), 500
 # ===============================
 # 7. RUN
 # ===============================
@@ -333,6 +388,7 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
