@@ -794,14 +794,28 @@
             }
         } 
         
-        (async () => {
-            await checkLogin(); 
+// --- KHỞI ĐỘNG ỨNG DỤNG ---
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("🚀 Web đã tải xong, bắt đầu lấy dữ liệu...");
+
+            // 1. Kiểm tra đăng nhập (Chạy ngầm, không chặn giao diện)
+            checkLogin(); 
+
+            // 2. Tải dữ liệu ngay lập tức (Không cần chờ login)
             updateDashboard();
+
+            // 3. Thiết lập vòng lặp tự động cập nhật (1 giây/lần)
             setInterval(() => {
-                // Update: Cho phép chạy ngầm để cập nhật dữ liệu liên tục
-                updateDashboard();
+                // Chỉ cập nhật khi không ở trang Account (để tránh lag khi đổi pass)
+                if (currentView !== 'account') {
+                    updateDashboard();
+                }
             }, 1000);
-        })();
+            
+            // 4. Cập nhật biểu đồ chậm hơn (5 phút/lần)
+            setInterval(loadCharts, 300000); 
+        });
     </script>
 </body>
 </html>
+
