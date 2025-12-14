@@ -1,514 +1,820 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard IOT Hajju</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <style>
-        /* === CSS TÙY CHỈNH (ĐÃ ĐƯỢC TỐI ƯU) === */
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
-        
-        /* HEADER ALERT: NẰM GIỮA, NỔI BẬT */
-        #header-alert {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            display: none; /* JS sẽ bật cái này */
-            color: #c0392b;
-            font-weight: 800;
-            font-size: 1.4em;
-            align-items: center;
-            gap: 10px;
-            animation: blink 1s infinite;
-            white-space: nowrap;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 8px 20px;
-            border-radius: 50px;
-            border: 2px solid #c0392b;
-            box-shadow: 0 4px 15px rgba(192, 57, 43, 0.3);
-            z-index: 2000;
-        }
-        @keyframes blink { 50% { opacity: 0.5; } }
-
-        /* HEADER CHÍNH */
-        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
-        .header i.logo { font-size: 28px; color: #009879; }
-
-        /* POPUP TOAST: GHIM CỨNG GÓC TRÊN PHẢI (QUAN TRỌNG) */
-        .toast-container {
-            position: fixed !important;
-            top: 20px !important;
-            right: 20px !important;
-            z-index: 99999 !important; /* Đè lên tất cả mọi thứ */
-        }
-        
-        /* CÁC THÀNH PHẦN KHÁC (GIỮ NGUYÊN) */
-        .toolbar { background: #2c3e50; color: white; padding: 10px 30px; display: flex; align-items: center; gap: 15px; }
-        .menu-btn { font-size: 20px; cursor: pointer; color: white; padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; display: flex; align-items: center; gap: 8px; }
-        .menu-btn:hover { background: rgba(255,255,255,0.1); }
-        .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #7f8c8d; padding-left: 15px; }
-        
-        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #1a252f; color: white; transition: 0.3s; z-index: 2000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
-        .sidebar.active { left: 0; }
-        .sidebar-header { padding: 20px; background: #009879; font-weight: bold; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: white; }
-        .menu-item { padding: 18px 25px; border-bottom: 1px solid #2c3e50; cursor: pointer; display: flex; align-items: center; gap: 15px; font-size: 1.05em; color:white; }
-        .menu-item:hover { background: #2c3e50; padding-left: 30px; }
-        .menu-item.active { background: #2c3e50; border-left: 5px solid #009879; color: #009879; font-weight: bold; }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
-        .overlay.active { display: block; }
-        
-        .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
-        .section-view.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* BẢNG & CARD */
-        .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        .iot-table th { background: #009879; color: white; padding: 15px; }
-        .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; text-align: center; }
-        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; }
-        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
-        
-        /* NOTIFICATION */
-        .notify-box { position: relative; cursor: pointer; margin-right: 10px; }
-        .notify-badge { position: absolute; top: -6px; right: -6px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none; }
-        .notify-dropdown { position: absolute; top: 50px; right: 0; width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; z-index: 1000; border: 1px solid #eee; max-height: 450px; overflow-y: auto; }
-        .notify-dropdown.show { display: block; }
-        
-        /* LAYOUT */
-        .control-layout { display: flex; gap: 30px; align-items: flex-start; }
-        .control-left { flex: 3; } .control-right { flex: 1; min-width: 350px; }
-        @media (max-width: 900px) { .control-layout { flex-direction: column; } .control-right { width: 100%; } }
-        
-        /* BUTTONS & BADGES */
-        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
-        .btn-add { background: #3498db; color: white; }
-        .btn-on.active { background: #2ecc71; color: white; }
-        .btn-off.active { background: #e74c3c; color: white; }
-        .badge-on { background: #e8f5e9; color: #27ae60; padding: 5px 10px; border-radius: 15px; font-weight: bold; }
-        .badge-off { background: #fce4ec; color: #c0392b; padding: 5px 10px; border-radius: 15px; font-weight: bold; }
-        
-        /* CAMERA */
-        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; }
-        .latest-image { width: 100%; height: 100%; object-fit: contain; }
-        .btn-stream { padding: 12px; width: 100%; border-radius: 6px; border:none; color:white; font-weight:bold; cursor:pointer; margin-bottom: 5px;}
-        .btn-stream-on { background: #2ecc71; } .btn-stream-off { background: #e74c3c; }
-        
-        /* ANIMATION */
-        @keyframes bell-shake { 0% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-5deg); } 45% { transform: rotate(4deg); } 60% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
-        .shake { animation: bell-shake 0.5s; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard IOT Hajju</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <style>
+        /* === CSS CƠ BẢN === */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
+        
+        /* HEADER */
+        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .header i.logo { font-size: 28px; color: #009879; }
+        
+        /* CẢNH BÁO HEADER (GHIM CỨNG Ở GIỮA) */
+        #header-alert {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Mặc định ẩn */
+            color: #c0392b;
+            font-weight: bold;
+            font-size: 1.4em;
+            align-items: center;
+            gap: 10px;
+            animation: blink 1s infinite;
+            white-space: nowrap;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 15px;
+            border-radius: 8px;
+            border: 2px solid #c0392b; /* Thêm viền đỏ cho nổi */
+        }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        
+        .toolbar { background: #2c3e50; color: white; padding: 10px 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .menu-btn { font-size: 20px; cursor: pointer; color: white; padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; display: flex; align-items: center; gap: 8px; }
+        .menu-btn:hover { background: rgba(255,255,255,0.1); }
+        .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #7f8c8d; padding-left: 15px; }
+        .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #1a252f; color: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
+        .sidebar.active { left: 0; }
+        .sidebar-header { padding: 20px; background: #009879; font-weight: bold; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { cursor: pointer; font-size: 20px; color: white; opacity: 0.8; transition: 0.3s; background: rgba(0,0,0,0.1); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .close-btn:hover { opacity: 1; background: rgba(0,0,0,0.3); transform: rotate(90deg); }
+        .menu-item { padding: 18px 25px; border-bottom: 1px solid #2c3e50; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 15px; font-size: 1.05em; }
+        .menu-item:hover { background: #2c3e50; padding-left: 30px; }
+        .menu-item.active { background: #2c3e50; border-left: 5px solid #009879; color: #009879; font-weight: bold; }
+        .menu-item i { width: 25px; text-align: center; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
+        .overlay.active { display: block; }
+        .notify-box { position: relative; cursor: pointer; margin-right: 10px; }
+        .notify-icon { font-size: 26px; color: #555; transition: 0.3s; display: inline-block; }
+        .notify-icon:hover { color: #009879; }
+        .notify-badge { position: absolute; top: -6px; right: -6px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none; animation: popIn 0.3s; border: 2px solid white; }
+        .notify-dropdown { position: absolute; top: 50px; right: 0; width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; z-index: 1000; border: 1px solid #eee; max-height: 450px; overflow-y: auto; }
+        .notify-dropdown.show { display: block; animation: fadeIn 0.2s; }
+        .notify-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; color: #2c3e50; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
+        .notify-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; display: flex; flex-direction: column; gap: 4px; transition: 0.2s; }
+        .notify-item:hover { background-color: #f9f9f9; }
+        .n-row1 { display: flex; justify-content: space-between; font-size: 0.95em; font-weight: 600; color: #333; }
+        .n-row2 { font-size: 0.85em; color: #7f8c8d; display: flex; justify-content: space-between; align-items: center; }
+        .n-action { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; text-transform: uppercase; font-weight: bold; }
+        .act-on { background: #27ae60; } .act-off { background: #e74c3c; } .act-cam { background: #f39c12; } .act-add { background: #3498db; } .act-del { background: #95a5a6; }
+        .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
+        .section-view.active { display: block; }
+        .control-layout { display: flex; gap: 30px; align-items: flex-start; }
+        .control-left { flex: 3; } .control-right { flex: 1; min-width: 350px; }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .panel-title { font-size: 20px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
+        .add-device-group { display: flex; gap: 10px; }
+        .input-device-name { padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; flex: 1; }
+        .input-device-name:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
+        .btn-add:hover { background: #2980b9; transform: translateY(-1px); }
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; font-size: 0.9em; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-on { background: #ecf0f1; color: #7f8c8d; } .btn-on.active { background: #2ecc71; color: white; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
+        .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
+        .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
+        .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
+        .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); table-layout: fixed; }
+        .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
+        .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #555; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .iot-table tr:last-child td { border-bottom: none; }
+        .cell-actions { display: flex; align-items: center; gap: 8px; justify-content: center; } 
+        .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; transition: 0.3s; }
+        .sensor-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
+        .sensor-row:last-child { border-bottom: none; margin-bottom: 0; }
+        .warning-alert { background-color: #fdede9; color: #c0392b; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border-left: 4px solid #e74c3c; }
+        .warning-alert:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .warning-alert .icon { font-size: 24px; color: #e74c3c; }
+        .warning-alert .message { font-weight: 700; text-transform: uppercase; font-size: 0.95em; letter-spacing: 0.5px; }
+        .safe-alert { background-color: #f0fdf4; color: #155724; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; border-left: 4px solid #28a745; }
+        .safe-alert .icon { font-size: 24px; color: #28a745; }
+        .safe-alert .message { font-weight: 600; font-size: 0.95em; }
+        .img-item { display: flex; align-items: center; gap: 15px; margin-top: 8px; cursor: pointer; background: #fff; padding: 8px; border: 1px solid #eee; border-radius: 8px; transition: 0.2s; position: relative; }
+        .img-item:hover { transform: translateX(5px); border-color: #3498db; }
+        .img-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .btn-download { margin-left: auto; border: none; cursor: pointer; background: #f1f1f6; color: #555; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: 1px solid #ddd; }
+        .btn-download:hover { background: #3498db; color: white; border-color: #3498db; }
+        .gallery-container { margin-top: 5px; padding-top: 5px; }
+        .gallery-content { display: none; max-height: 300px; overflow-y: auto; padding-top: 10px; }
+        .gallery-content.open { display: block; }
+        .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
+        .no-image-text { color: #7f8c8d; text-align: center; }
+        .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn-stream { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
+        .btn-stream-on { background: #2ecc71; }
+        .btn-stream-on:hover { background: #27ae60; }
+        .btn-stream-off { background: #e74c3c; opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-on { opacity: 0.5; pointer-events: none; }
+        .streaming-active .btn-stream-off { opacity: 1; pointer-events: auto; background: #e74c3c; }
+        .streaming-active .btn-stream-off:hover { background: #c0392b; }
+        .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
+        .history-content { padding: 20px !important; text-align: left !important; }
+        .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; border-collapse: collapse; }
+        .history-table th, .history-table td { padding: 10px; border: 1px solid #eee; }
+        .badge-on { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; } 
+        .badge-off { color: #c0392b; font-weight: bold; background: #fbecec; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; }
+        .dev-table th { background: #8e44ad; } 
+        .pin-badge { background: #2c3e50; color: #f1c40f; padding: 4px 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; font-size: 0.9em; }
+        .notify-view-table th { background: #34495e; }
+        .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
+        .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
+        .charts-wrapper { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .stats-main-row { cursor: pointer; transition: 0.2s; }
+        .stats-main-row:hover { background: #f0fdfa; }
+        .stats-detail-row { display: none; background: #fffcf5; }
+        .stats-detail-row.open { display: table-row; }
+        .detail-table { width: 100%; font-size: 0.9em; border: 1px dashed #ddd; margin-top: 10px; background: white; }
+        .detail-table th { background: #f39c12; color: white; padding: 8px; }
+        .detail-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+        @keyframes bell-shake { 0% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-5deg); } 45% { transform: rotate(4deg); } 60% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 900px) { 
+            .control-layout { flex-direction: column; } 
+            .control-right { width: 100%; } 
+            .charts-wrapper { flex-direction: column; } 
+            .sidebar { width: 250px; }
+        }
+    </style>
 </head>
 <body>
 
-    <div class="toast-container">
-        <div id="alarmToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body" style="font-size: 1.1em; font-weight: 500;">
-                    <i class="fas fa-user-secret fa-lg me-2"></i>
-                    <strong>CẢNH BÁO:</strong> Phát hiện có người!
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    </div>
-    <div class="header">
-        <div class="header-left">
-            <i class="fas fa-network-wired logo"></i>
-            <h1>Dashboard IOT Hajju</h1>
-        </div>
+    <div class="header">
+        <div class="header-left">
+            <i class="fas fa-network-wired logo"></i>
+            <h1>Dashboard IOT Hajju</h1>
+        </div>
 
-        <div id="header-alert">
-            <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI !!!
-        </div>
+        <div id="header-alert">
+            <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI !!!
+        </div>
 
-        <div class="notify-box" onclick="toggleNotify(event)">
-            <i class="fas fa-bell notify-icon" id="bell-icon"></i>
-            <span class="notify-badge" id="notify-count">0</span>
+        <div class="notify-box" onclick="toggleNotify(event)">
+            <i class="fas fa-bell notify-icon" id="bell-icon"></i>
+            <span class="notify-badge" id="notify-count">0</span>
 
-            <div class="notify-dropdown" id="notify-dropdown">
-                <div class="notify-header">
-                    <span><i class="fas fa-history"></i> Mới nhất</span>
-                    <span style="float:right; cursor:pointer; color:#e74c3c; font-size:0.9em;" onclick="clearNotifications()">
-                        <i class="fas fa-trash-alt"></i> Xóa
-                    </span>
-                </div>
-                <div id="notify-list" style="padding:10px; color:#777; text-align:center;">Đang tải...</div>
-            </div>
-        </div>
-    </div>
+            <div class="notify-dropdown" id="notify-dropdown">
+                <div class="notify-header">
+                    <span><i class="fas fa-history"></i> Mới nhất</span>
+                    <span style="float:right; cursor:pointer; color:#e74c3c; font-size:0.9em;" onclick="clearNotifications()">
+                        <i class="fas fa-trash-alt"></i> Xóa
+                    </span>
+                </div>
+                <div id="notify-list">Đang tải...</div>
+            </div>
+        </div>
+    </div>
 
-    <div class="toolbar">
-        <div class="menu-btn" onclick="openMenu()"><i class="fas fa-bars"></i> Menu</div>
-        <span class="current-view-title" id="page-title">Bảng điều khiển</span>
-    </div>
+    <div class="toolbar">
+        <div class="menu-btn" onclick="openMenu()"><i class="fas fa-bars"></i> Menu</div>
+        <span class="current-view-title" id="page-title">Bảng điều khiển</span>
+    </div>
 
-    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header"><span>HAJJU IOT</span><div class="close-btn" onclick="closeMenu()"><i class="fas fa-times"></i></div></div>
-        <div class="menu-item active" onclick="switchView('control', this, 'Bảng điều khiển')"><i class="fas fa-tachometer-alt"></i> Bảng điều khiển</div>
-        <div class="menu-item" onclick="switchView('camera', this, 'Camera AI')"><i class="fas fa-video"></i> Camera AI</div>
-        <div class="menu-item" onclick="switchView('stats', this, 'Thống kê & Biểu đồ')"><i class="fas fa-chart-pie"></i> Thống kê</div>
-        <div class="menu-item" onclick="switchView('notification', this, 'Thông báo hệ thống')"><i class="fas fa-bell"></i> Thông báo</div>
-        <div class="menu-item" onclick="switchView('account', this, 'Tài khoản người dùng')"><i class="fas fa-user-circle"></i> Tài khoản</div>
-        <div class="menu-item" onclick="switchView('development', this, 'Chế độ nhà phát triển')"><i class="fas fa-code"></i> Nhà phát triển</div>
-    </div>
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header"><span>HAJJU IOT</span><div class="close-btn" onclick="closeMenu()"><i class="fas fa-times"></i></div></div>
+        <div class="menu-item" onclick="switchView('account', this, 'Tài khoản người dùng')"><i class="fas fa-user-circle"></i> Tài khoản</div>
+        <div class="menu-item active" onclick="switchView('control', this, 'Bảng điều khiển')"><i class="fas fa-tachometer-alt"></i> Bảng điều khiển</div>
+        <div class="menu-item" onclick="switchView('camera', this, 'Camera AI')"><i class="fas fa-video"></i> Camera AI</div>
+        <div class="menu-item" onclick="switchView('stats', this, 'Thống kê & Biểu đồ')"><i class="fas fa-chart-pie"></i> Thống kê</div>
+        <div class="menu-item" onclick="switchView('notification', this, 'Thông báo hệ thống')"><i class="fas fa-bell"></i> Thông báo</div>
+        <div class="menu-item" onclick="switchView('development', this, 'Chế độ nhà phát triển')"><i class="fas fa-code"></i> Nhà phát triển</div>
+    </div>
 
-    <div id="view-control" class="section-view active">
-        <div class="control-layout">
-            <div class="control-left">
-                <div class="panel-header">
-                    <div class="panel-title"><i class="fas fa-sliders-h"></i> Điều khiển thiết bị</div>
-                    <div class="add-device-group">
-                        <input type="text" id="new-dev-name" class="input-device-name" placeholder="Tên thiết bị...">
-                        <button class="btn-add" onclick="handleAddDevice()">+ Thêm</button>
-                    </div>
-                </div>
-                <table class="iot-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 10%; text-align:center;">ID</th>
-                            <th style="width: 30%;">Tên thiết bị</th>
-                            <th style="width: 15%; text-align:center;">Trạng thái</th>
-                            <th style="width: 25%; text-align:center;">Hành động</th>
-                            <th style="width: 20%; text-align:center;">Tương tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="control-body"></tbody>
-                </table>
-                <div style="margin-top:10px; color:#777; font-style:italic; font-size:0.9em">* Bấm vào dòng thiết bị để xem lịch sử chi tiết.</div>
-            </div>
-            
-            <div class="control-right">
-                <div class="panel-header"><div class="panel-title"><i class="fas fa-video"></i> Giám sát tại chỗ</div></div>
-                <div id="sensor-body-local">Loading...</div>
-                <div class="panel-header" style="margin-top: 20px;"><div class="panel-title"><i class="fas fa-broadcast-tower"></i> Dữ liệu Từ Xa</div></div>
-                <div id="sensor-body-remote">Loading...</div>
-            </div>
-        </div>
-    </div>
+    <div id="view-account" class="section-view">
+        <div class="control-layout">
+            <div style="flex: 1;">
+                <div class="panel-header"><div class="panel-title" style="color: #009879;"><i class="fas fa-id-badge"></i> Thông tin tài khoản</div></div>
+                <div class="sensor-card" style="border-top: 4px solid #009879; padding: 25px; height: 100%;">
+                    <div class="sensor-row" style="padding-bottom: 15px;">
+                        <span><i class="fas fa-envelope" style="color: #3498db;"></i> Email đăng nhập:</span>
+                        <span style="font-weight:bold; color: #2c3e50;" id="acc-email">Đang tải...</span>
+                    </div>
+                    <div class="sensor-row" style="padding-bottom: 15px;">
+                        <span><i class="fas fa-id-card" style="color: #7f8c8d;"></i> Mã người dùng (ID):</span>
+                        <span style="font-weight:bold" id="acc-id">--</span>
+                    </div>
+                    <div class="sensor-row" style="border-bottom: none;">
+                        <span><i class="fas fa-user-tag" style="color: #2ecc71;"></i> Vai trò:</span>
+                        <span style="font-weight:bold; color:green">Admin (Mockup)</span>
+                    </div>
+                    
+                    <button class="btn btn-off" style="width:100%; margin-top:30px; background:#e74c3c; color:white; font-size: 1.1em; padding: 12px; border-radius: 6px; box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);" onclick="handleLogout()">Đăng xuất <i class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+            
+            <div style="flex: 1;">
+                <div class="panel-header"><div class="panel-title" style="color: #8e44ad;"><i class="fas fa-key"></i> Đổi mật khẩu</div></div>
+                <div class="sensor-card" style="border-top: 4px solid #8e44ad; padding: 25px;">
+                    <form id="change-pass-form">
+                        <div class="input-group" style="margin-bottom:20px">
+                            <label for="old-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu cũ</label>
+                            <input type="password" id="old-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập mật khẩu hiện tại">
+                        </div>
+                        <div class="input-group" style="margin-bottom:20px">
+                            <label for="new-pass" style="display:block; font-weight:600; margin-bottom:8px">Mật khẩu mới</label>
+                            <input type="password" id="new-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Ít nhất 6 ký tự">
+                        </div>
+                        <div class="input-group" style="margin-bottom:30px">
+                            <label for="confirm-pass" style="display:block; font-weight:600; margin-bottom:8px">Xác nhận mật khẩu mới</label>
+                            <input type="password" id="confirm-pass" style="width:100%; padding:14px; border:1px solid #ddd; border-radius:6px; background: #f9f9f9;" required placeholder="Nhập lại mật khẩu mới">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-add" style="width:100%; background:#8e44ad; font-size: 1.1em; padding: 14px; border-radius: 6px; box-shadow: 0 4px 8px rgba(142, 68, 173, 0.3);">Đổi Mật Khẩu</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div id="view-camera" class="section-view">
-        <div class="control-layout">
-            <div class="control-left">
-                <div class="panel-header"><div class="panel-title"><i class="fas fa-satellite-dish"></i> Live Stream</div></div>
-                <div class="stream-controls">
-                    <button class="btn-stream btn-stream-on" onclick="startStream()"><i class="fas fa-play"></i> BẬT STREAM</button>
-                    <button class="btn-stream btn-stream-off" onclick="stopStream()"><i class="fas fa-stop"></i> TẮT STREAM</button>
-                </div>
-                <div class="camera-snapshot-box" style="border: 2px solid #3498db;">
-                    <img id="videoStreamElement" src="" style="display:none; width:100%; height:100%;">
-                    <div id="streamPlaceholder" class="no-image-text" style="color:white">
-                        <i class="fas fa-video-slash" style="font-size:50px; margin-bottom:10px;"></i><br>Camera đang tắt
-                    </div>
-                </div>
-            </div>
-            <div class="control-right">
-                <div class="panel-header"><div class="panel-title"><i class="fas fa-camera-retro"></i> Ảnh mới nhất</div></div>
-                <div class="camera-snapshot-box">
-                    <img id="latest-snapshot" class="latest-image" src="" style="display:none">
-                    <div id="no-snapshot" class="no-image-text" style="color:white"><i class="fas fa-image" style="font-size:40px;"></i><br>Chưa có ảnh</div>
-                </div>
-                <div style="text-align:center; color:#555; margin-bottom:10px"><i class="far fa-clock"></i> <span id="snapshot-time">--/--</span></div>
-                <button class="btn-add" style="width:100%; background:#e67e22" onclick="forceCapture()">📸 CHỤP NGAY</button>
-            </div>
-        </div>
-    </div>
+    <div id="view-control" class="section-view active">
+        <div class="control-layout">
+            <div class="control-left">
+                <div class="panel-header">
+                    <div class="panel-title"><i class="fas fa-sliders-h"></i> Điều khiển thiết bị</div>
+                    <div class="add-device-group">
+                        <input type="text" id="new-dev-name" class="input-device-name" placeholder="Tên thiết bị...">
+                        <button class="btn-add" onclick="handleAddDevice()">+ Thêm</button>
+                    </div>
+                </div>
+                <table class="iot-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 10%; text-align:center;">ID</th>
+                            <th style="width: 30%;">Tên thiết bị</th>
+                            <th style="width: 15%; text-align:center;">Trạng thái</th>
+                            <th style="width: 25%; text-align:center;">Hành động</th>
+                            <th style="width: 20%; text-align:center;">Tương tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="control-body"></tbody>
+                </table>
+                <div style="margin-top:10px; color:#777; font-style:italic; font-size:0.9em">* Bấm vào dòng thiết bị để xem lịch sử BẬT/TẮT chi tiết.</div>
+            </div>
+            
+            <div class="control-right">
+                <div class="panel-header"><div class="panel-title"><i class="fas fa-video"></i> Giám sát tại chỗ</div></div>
+                <div id="sensor-body-local">Loading...</div>
+                <div class="panel-header" style="margin-top: 20px;"><div class="panel-title"><i class="fas fa-broadcast-tower"></i> Dữ liệu Từ Xa</div></div>
+                <div id="sensor-body-remote">Loading...</div>
+            </div>
+        </div>
+    </div>
 
-    <div id="view-account" class="section-view">
-        <div class="control-layout">
-            <div style="flex: 1;">
-                <div class="panel-header"><div class="panel-title"><i class="fas fa-id-badge"></i> Thông tin</div></div>
-                <div class="sensor-card">
-                    <div class="sensor-row"><span>Email:</span><span style="font-weight:bold" id="acc-email">...</span></div>
-                    <div class="sensor-row"><span>ID:</span><span style="font-weight:bold" id="acc-id">...</span></div>
-                    <button class="btn btn-off" style="width:100%; margin-top:20px" onclick="handleLogout()">Đăng xuất</button>
-                </div>
-            </div>
-            <div style="flex: 1;">
-                <div class="panel-header"><div class="panel-title"><i class="fas fa-key"></i> Đổi mật khẩu</div></div>
-                <div class="sensor-card">
-                    <form id="change-pass-form">
-                        <input type="password" id="old-pass" class="input-device-name" style="width:100%; margin-bottom:10px" placeholder="Mật khẩu cũ" required>
-                        <input type="password" id="new-pass" class="input-device-name" style="width:100%; margin-bottom:10px" placeholder="Mật khẩu mới" required>
-                        <input type="password" id="confirm-pass" class="input-device-name" style="width:100%; margin-bottom:20px" placeholder="Xác nhận mật khẩu" required>
-                        <button type="submit" class="btn btn-add" style="width:100%">Đổi Mật Khẩu</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="view-camera" class="section-view">
+        <div class="control-layout">
+            <div class="control-left">
+                <div class="panel-header"><div class="panel-title"><i class="fas fa-satellite-dish"></i> Live Stream (Thời gian thực)</div></div>
+                <div class="stream-controls" id="streamControls">
+                    <button class="btn-stream btn-stream-on" onclick="startStream()"><i class="fas fa-play"></i> BẬT STREAM</button>
+                    <button class="btn-stream btn-stream-off" onclick="stopStream()"><i class="fas fa-stop"></i> TẮT STREAM</button>
+                </div>
+                <div class="camera-snapshot-box" style="border: 2px solid #3498db;">
+                    <img id="videoStreamElement" src="" style="display:none">
+                    <div id="streamPlaceholder" class="no-image-text">
+                        <i class="fas fa-video-slash" style="font-size:50px; margin-bottom:10px; color: #95a5a6"></i><br>
+                        Camera đang tắt để tiết kiệm năng lượng
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-right">
+                <div class="panel-header"><div class="panel-title"><i class="fas fa-camera-retro"></i> Ảnh Chụp Gần Nhất</div></div>
+                <div class="camera-snapshot-box">
+                    <img id="latest-snapshot" class="latest-image" src="" style="display:none">
+                    <div id="no-snapshot" class="no-image-text">
+                        <i class="fas fa-image" style="font-size:40px; margin-bottom:10px"></i><br>Chưa có ảnh
+                    </div>
+                </div>
+                <div style="text-align:center; color:#555; margin-bottom:20px">
+                    <i class="far fa-clock"></i> <span id="snapshot-time" style="font-weight:bold">--/--</span>
+                </div>
+                <div class="panel-header"><div class="panel-title"><i class="fas fa-info-circle"></i> Trạng thái</div></div>
+                <div class="sensor-card" style="border-top:4px solid #3498db">
+                    <div style="font-size:0.95em; color:#555">
+                        <p>• Chế độ: <b>Always On Guard</b></p>
+                        <p>• Stream: <b id="status-stream" style="color:red">ĐANG TẮT</b></p>
+                        <p style="font-style:italic; font-size:0.9em">* Hệ thống tự động phát hiện người và chụp ảnh (3s/lần) ngay cả khi tắt Stream.</p>
+                    </div>
+                </div>
+                <button class="btn-add" style="width:100%; margin-top:10px; background:#e67e22" onclick="forceCapture()">📸 CHỤP ẢNH NGAY</button>
+            </div>
+        </div>
+    </div>
 
-    <div id="view-stats" class="section-view">
-        <div class="panel-header"><div class="panel-title"><i class="fas fa-chart-line"></i> Biểu đồ</div><button class="btn-add" onclick="loadCharts()">Làm mới</button></div>
-        <div class="charts-wrapper"><div class="chart-card"><canvas id="chart5m"></canvas></div><div class="chart-card"><canvas id="chart1h"></canvas></div></div>
-        <table class="iot-table" style="margin-top:20px"><thead><tr><th>Thiết bị</th><th>Trạng thái</th><th>Thời gian chạy</th></tr></thead><tbody id="stats-body"></tbody></table>
-    </div>
-    <div id="view-notification" class="section-view">
-        <div class="panel-header"><div class="panel-title"><i class="fas fa-list-alt"></i> Nhật ký</div><button class="btn-add" onclick="loadNotifications(true)">Làm mới</button></div>
-        <table class="iot-table notify-view-table"><thead><tr><th>Thời gian</th><th>Thiết bị</th><th>Hành động</th><th>Người dùng</th></tr></thead><tbody id="notify-body"></tbody></table>
-    </div>
-    <div id="view-development" class="section-view"><div class="panel-header">Cấu hình GPIO</div><table class="iot-table dev-table"><tbody id="dev-body"></tbody></table></div>
+    <div id="view-stats" class="section-view">
+        <div class="panel-header"><div class="panel-title"><i class="fas fa-chart-line"></i> Dữ liệu cảm biến</div><button class="btn-add" onclick="loadCharts()"><i class="fas fa-sync"></i> Làm mới Biểu đồ</button></div>
+        <div class="charts-wrapper"><div class="chart-card" id="card-5m"><div class="chart-title">Chi tiết (5 phút / điểm)</div><div class="chart-container"><canvas id="chart5m"></canvas></div></div><div class="chart-card" id="card-1h"><div class="chart-title">Tổng quan (1 giờ / cột)</div><div class="chart-container"><canvas id="chart1h"></canvas></div></div></div>
+        <div class="panel-header" style="margin-top: 30px;"><div class="panel-title"><i class="fas fa-history"></i> Thống kê Thời gian sử dụng</div></div>
+        
+        <table class="iot-table">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Thiết bị</th>
+                    <th style="width: 20%; text-align:center;">Trạng thái</th>
+                    <th style="width: 30%; text-align:center;">Tổng thời gian chạy</th>
+                    <th style="width: 15%; text-align:center;">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+        </table>
+    </div>
 
-    <script>
-        const API_BASE = ""; 
-        const CAM_BASE = "http://localhost:5001"; // Nếu chạy local, nếu deploy thì đổi link này
+    <div id="view-notification" class="section-view">
+        <div class="panel-header"><div class="panel-title"><i class="fas fa-list-alt"></i> Nhật ký hệ thống</div><button class="btn-add" onclick="loadNotifications(true)"><i class="fas fa-sync"></i> Làm mới</button></div>
+        <table class="iot-table notify-view-table"><thead><tr><th>Thời gian</th><th>Thiết bị</th><th>Hành động</th><th>Người dùng</th></tr></thead><tbody id="notify-body"><tr><td colspan="4">Đang tải...</td></tr></tbody></table>
+    </div>
 
-        // BIẾN TOÀN CỤC
-        let currentView = "control";
-        let lastPirState = {}; 
-        let globalNotifications = [];
-        let chart5m = null; let chart1h = null;
+    <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
+    
+    <script>
+        const API_BASE = ""; 
+        const CAM_BASE = "http://localhost:5001";
 
-        // --- MENU LOGIC ---
-        function openMenu() { document.getElementById('sidebar').classList.add('active'); document.getElementById('overlay').classList.add('active'); }
-        function closeMenu() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('overlay').classList.remove('active'); }
+        // BIẾN TOÀN CỤC
+        let currentView = "control";
+        let lastSeenImageTime = localStorage.getItem('lastSeenImageTime') || '00:00:00 01/01';
+        let isGalleryOpen = false;
+        let lastNotifySignature = ""; 
+        let lastViewedTimestamp = 0; 
+        let globalNotifications = []; 
+        let lastPirState = {}; 
+        let openHistoryIds = new Set(); 
+        let openStatsIds = new Set();
+        let chart5m = null; 
+        let chart1h = null;
 
-        function switchView(viewName, btn, title) {
-            currentView = viewName;
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            document.getElementById(`view-${viewName}`).classList.add('active');
-            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-            document.getElementById('page-title').innerText = title;
-            closeMenu();
-            
-            if (viewName === 'control' || viewName === 'notification') updateDashboard();
-            if (viewName === 'account') loadAccountInfo();
-            if (viewName === 'stats') loadCharts();
-            if (viewName !== 'camera') stopStream();
-        }
+        // --- MENU LOGIC ---
+        function openMenu() { document.getElementById('sidebar').classList.add('active'); document.getElementById('overlay').classList.add('active'); }
+        function closeMenu() { document.getElementById('sidebar').classList.remove('active'); document.getElementById('overlay').classList.remove('active'); }
 
-        // --- AUTH ---
-        async function checkLogin() {
-            try {
-                const res = await fetch("/api/user_status");
-                const data = await res.json();
-                if (!data.logged_in) window.location.href = "/";
-            } catch (e) { window.location.href = "/"; }
-        }
-        async function handleLogout() {
-            await fetch('/logout', { method: 'POST' });
-            window.location.href = '/';
-        }
-        async function loadAccountInfo() {
-            const res = await fetch(`${API_BASE}/api/user_info`);
-            if (res.ok) {
-                const info = await res.json();
-                document.getElementById('acc-email').innerText = info.email;
-                document.getElementById('acc-id').innerText = `#${info.id}`;
-            }
-        }
+        function switchView(viewName, btn, title) {
+            currentView = viewName;
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('page-title').innerText = title;
+            closeMenu();
+            
+            // Cập nhật ngay các trang quan trọng
+            if (viewName === 'control' || viewName === 'development' || viewName === 'stats' || viewName === 'notification') updateDashboard();
+            
+            if (viewName === 'account') loadAccountInfo();
+            if (viewName === 'stats') loadCharts();
+            if (viewName !== 'camera') stopStream();
+        }
 
-        // --- MAIN UPDATE ---
-        async function updateDashboard() { 
-            if (currentView === "account") return;
-            try { 
-                const resDev = await fetch(`${API_BASE}/api/devices`);
-                const devices = await resDev.json();
-                
-                // Load Notify
-                const resDrop = await fetch(`${API_BASE}/api/notifications/dropdown`);
-                const dropNotis = await resDrop.json();
-                updateBell(dropNotis);
+        // --- AUTHENTICATION CHECK ---
+        async function checkLogin() {
+            try {
+                const res = await fetch("/api/user_status", { credentials: "include" });
+                const data = await res.json();
+                if (!data.logged_in) {
+                    window.location.href = "/";
+                }
+            } catch (e) {
+                window.location.href = "/";
+            }
+        }
 
-                if(currentView === 'notification') {
-                   const resAll = await fetch(`${API_BASE}/api/notifications`);
-                   renderNotificationPage(await resAll.json());
-                }
+        async function handleLogout() {
+            try {
+                await fetch('/logout', { method: 'POST', credentials: 'include' });
+            } finally {
+                window.location.href = '/';
+            }
+        }
 
-                renderControlView(devices); 
-                renderSensorPanel(devices); 
-                if(currentView === 'stats') renderStatsTable(devices);
-                
-            } catch (e) { console.error(e); } 
-        }
+        // --- ACCOUNT LOGIC ---
+        async function loadAccountInfo() {
+            try {
+                const res = await fetch(`${API_BASE}/api/user_info`, { credentials: "include" });
+                if (res.status === 200) {
+                    const userInfo = await res.json();
+                    document.getElementById('acc-email').innerText = userInfo.email;
+                    document.getElementById('acc-id').innerText = `#${userInfo.id}`;
+                } else if (res.status === 401) {
+                    window.location.href = '/'; 
+                }
+            } catch (e) { console.error(e); }
+        }
 
-        // --- RENDER CONTROL ---
-        function renderControlView(devices) {
-            const tbody = document.getElementById('control-body');
-            if (devices.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Chưa có thiết bị</td></tr>'; return; }
-            
-            let html = '';
-            devices.forEach(d => {
-                const isOn = d.status === "ON";
-                const statusBadge = isOn ? `<span class="badge-on">BẬT</span>` : `<span class="badge-off">TẮT</span>`;
-                html += `
-                <tr>
-                    <td style="font-weight:bold; text-align:center">#${d.id}</td>
-                    <td style="font-weight:600">${d.name}</td>
-                    <td style="text-align:center">${statusBadge}</td>
-                    <td style="text-align:center">
-                        <button class="btn btn-on ${isOn?'active':''}" onclick="controlDevice(${d.id}, 'on')">Bật</button>
-                        <button class="btn btn-off ${!isOn?'active':''}" onclick="controlDevice(${d.id}, 'off')">Tắt</button>
-                    </td>
-                    <td style="text-align:center">
-                        <button class="btn btn-edit" onclick="renameDevice(${d.id}, '${d.name}')"><i class="fas fa-pen"></i></button>
-                        <button class="btn btn-del" onclick="deleteDevice(${d.id})"><i class="fas fa-trash"></i></button>
-                    </td>
-                </tr>`;
-            });
-            if (tbody.innerHTML !== html) tbody.innerHTML = html;
-        }
+        const changePassForm = document.getElementById('change-pass-form');
+        if (changePassForm) {
+            changePassForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const oldPass = document.getElementById('old-pass').value;
+                const newPass = document.getElementById('new-pass').value;
+                const confirmPass = document.getElementById('confirm-pass').value;
+                if (newPass.length < 6) return Swal.fire("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự.", "error");
+                if (newPass !== confirmPass) return Swal.fire("Lỗi", "Mật khẩu xác nhận không khớp.", "error");
+                try {
+                    const response = await fetch('/change_password', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        Swal.fire("Thành công!", result.message, "success");
+                        changePassForm.reset();
+                    } else { Swal.fire("Thất bại", result.message, "error"); }
+                } catch (error) { Swal.fire("Lỗi kết nối", "", "error"); }
+            });
+        }
 
-        // --- SENSOR & ALERT ---
-        function renderSensorPanel(devices) {
-            const containerLocal = document.getElementById('sensor-body-local'); 
-            const containerRemote = document.getElementById('sensor-body-remote');
-            if (!devices || devices.length === 0) return;
-            const d = devices[0]; 
+        // --- CORE UPDATE FUNCTION ---
+        async function updateDashboard() { 
+            if (currentView === "account") return;
+            
+            try { 
+                const resDev = await fetch(`${API_BASE}/api/devices`, { credentials: "include" });
+                const devices = await resDev.json();
+                
+                if(document.getElementById('view-notification').classList.contains('active')) { 
+                    const resAll = await fetch(`${API_BASE}/api/notifications`, { credentials: "include" });
+                    const allNotis = await resAll.json();
+                    renderNotificationPage(allNotis);
+                } 
 
-            const temp = (d.temp && d.temp !== "--") ? d.temp.toFixed(1) + "°C" : "--";
-            const hum = (d.hum && d.hum !== "--") ? d.hum.toFixed(1) + "%" : "--";
-            const pirText = d.pir == 1 ? `<span style="color:#e74c3c; font-weight:bold">CÓ NGƯỜI</span>` : `<span>Không</span>`;
+                const resDrop = await fetch(`${API_BASE}/api/notifications/dropdown`, { credentials: "include" });
+                const dropNotis = await resDrop.json();
+                
+                renderControlView(devices); 
+                renderSensorPanel(devices); 
+                renderDevelopmentView(devices); 
+                updateBell(dropNotis); 
+                
+                if(document.getElementById('view-stats').classList.contains('active')) { renderStatsTable(devices); } 
+            } catch (e) { console.error(e); } 
+        }
 
-            // HEADER ALERT
-            const alertBanner = document.getElementById('header-alert');
-            if (d.pir == 1) alertBanner.style.display = 'flex';
-            else alertBanner.style.display = 'none';
+        // --- RENDER CONTROL VIEW (5 CỘT) ---
+        function renderControlView(devices) {
+            const tbody = document.getElementById('control-body');
+            if (devices.length === 0) { 
+                if(!tbody.innerHTML.includes("Chưa có thiết bị")) 
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999">Chưa có thiết bị</td></tr>'; 
+                return; 
+            }
+            
+            const newIds = devices.map(d => d.id);
+            Array.from(tbody.getElementsByClassName('device-row')).forEach(row => { 
+                const rid = parseInt(row.getAttribute('data-id')); 
+                if (!newIds.includes(rid)) { 
+                    row.remove(); 
+                    document.getElementById(`history-${rid}`)?.remove(); 
+                } 
+            });
 
-            // POPUP TOAST (Logic chuẩn)
-            if (d.pir == 1 && (lastPirState[d.id] === undefined || lastPirState[d.id] == 0)) {
-                console.log("🚨 PHÁT HIỆN NGƯỜI!");
-                const toastEl = document.getElementById('alarmToast');
-                if (toastEl) {
-                    const toast = new bootstrap.Toast(toastEl);
-                    toast.show();
-                }
-                // Rung chuông
-                const bell = document.getElementById('bell-icon'); 
-                if(bell) {
-                    bell.classList.add('shake'); 
-                    setTimeout(() => bell.classList.remove('shake'), 500);
-                }
-            }
-            lastPirState[d.id] = d.pir;
+            let html = '';
+            devices.forEach(d => {
+                const isOn = d.status === "ON";
+                const statusBadge = isOn 
+                    ? `<span style="color:#27ae60; font-weight:800; background:#e8f5e9; padding:5px 15px; border-radius:20px; display:inline-block; min-width:80px; text-align:center; border: 1px solid #c3e6cb;">BẬT</span>` 
+                    : `<span style="color:#c0392b; font-weight:800; background:#fce4ec; padding:5px 15px; border-radius:20px; display:inline-block; min-width:80px; text-align:center; border: 1px solid #f5c6cb;">TẮT</span>`;
+                
+                const controlHtml = `
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <button class="btn btn-on ${isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'on')" title="Bật"><i class="fas fa-power-off"></i></button>
+                        <button class="btn btn-off ${!isOn?'active':''}" onclick="event.stopPropagation(); controlDevice(${d.id}, 'off')" title="Tắt"><i class="far fa-circle"></i></button>
+                    </div>`;
 
-            // HTML Sensor Local
-            containerLocal.innerHTML = `
-                <div class="sensor-card">
-                    <div class="sensor-row"><i class="fas fa-temperature-high" style="color:#e74c3c"></i> <span>Nhiệt độ: <b>${temp}</b></span></div>
-                    <div class="sensor-row"><i class="fas fa-tint" style="color:#3498db"></i> <span>Độ ẩm: <b>${hum}</b></span></div>
-                    <div class="sensor-row"><i class="fas fa-running" style="color:#2ecc71"></i> <span>Chuyển động: ${pirText}</span></div>
-                </div>
-            `;
-            // HTML Sensor Remote
-             const temp2 = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
-             const gas = (d.gas) ? d.gas : "--";
-             containerRemote.innerHTML = `
-                <div class="sensor-card" style="border-top:4px solid #8e44ad">
-                    <div class="sensor-row"><i class="fas fa-temperature-high"></i> <span>Nhiệt độ: <b>${temp2}</b></span></div>
-                    <div class="sensor-row"><i class="fas fa-burn"></i> <span>Khí Gas: <b>${gas}</b></span></div>
-                </div>
-            `;
-            
-            // Cập nhật ảnh camera mới nhất
-            if (d.images && d.images.length > 0) {
-                 const latest = d.images[0];
-                 const imgEl = document.getElementById('latest-snapshot');
-                 const noImgEl = document.getElementById('no-snapshot');
-                 if(imgEl) {
-                     imgEl.src = `${API_BASE}/static/${latest.filename}`;
-                     imgEl.style.display = 'block';
-                     noImgEl.style.display = 'none';
-                     document.getElementById('snapshot-time').innerText = latest.time;
-                 }
-            }
-        }
+                const interactHtml = `
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <button class="btn" style="background:#3498db; color:white; padding: 6px 10px; font-size: 0.85em;" onclick="event.stopPropagation(); renameDevice(${d.id}, '${d.name}')" title="Đổi tên">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button class="btn btn-del" style="padding: 6px 10px; font-size: 0.85em;" onclick="event.stopPropagation(); deleteDevice(${d.id})" title="Xóa">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`;
+                
+                html += `
+                <tr class="device-row" onclick="toggleHistory(${d.id})" id="row-${d.id}" data-id="${d.id}" style="height: 60px;">
+                    <td style="text-align: center; color: #7f8c8d; font-weight:bold;">#${d.id}</td>
+                    <td class="cell-name" style="font-weight:600; cursor:pointer; font-size:1.05em; color: #2c3e50; vertical-align: middle;">
+                        ${d.name}
+                    </td>
+                    <td class="cell-status" style="text-align: center; vertical-align: middle;">${statusBadge}</td>
+                    <td style="text-align: center; vertical-align: middle;">${controlHtml}</td>
+                    <td style="text-align: center; vertical-align: middle;">${interactHtml}</td>
+                </tr>
+                <tr class="history-row" id="history-${d.id}">
+                    <td colspan="5" class="history-content"><div id="hist-data-${d.id}"></div></td>
+                </tr>`;
+            });
+            
+            if (tbody.innerHTML !== html) tbody.innerHTML = html;
+        }
 
-        // --- ACTIONS ---
-        async function handleAddDevice() { 
-            const name = document.getElementById('new-dev-name').value; 
-            if(!name) return;
-            await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); 
-            document.getElementById('new-dev-name').value = ""; updateDashboard(); 
-        }
-        async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}); updateDashboard(); }
-        
-        async function deleteDevice(id) {
-             if(confirm("Bạn chắc chắn muốn xóa?")) {
-                 await fetch(`${API_BASE}/api/devices/${id}`, {method: "DELETE"});
-                 updateDashboard();
-             }
-        }
-        async function renameDevice(id, old) {
-            const newName = prompt("Nhập tên mới:", old);
-            if(newName) {
-                await fetch(`${API_BASE}/api/devices/${id}/rename`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: newName})});
-                updateDashboard();
-            }
-        }
-        async function forceCapture() {
-            await fetch(`${API_BASE}/api/capture`, {method: "POST"});
-            Swal.fire("Đã gửi lệnh chụp ảnh", "", "success");
-        }
+        async function fetchHistory(id) { 
+            const div = document.getElementById(`hist-data-${id}`); 
+            if(!div) return; 
+            if (!div.querySelector('table') && !div.innerHTML.includes("Chưa có")) {
+                div.innerHTML = '<div style="padding:10px; color:#666; text-align:center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+            }
+            try {
+                const res = await fetch(`${API_BASE}/api/devices/${id}/history`, { credentials: "include" }); 
+                const logs = await res.json();
+                if(logs.length === 0){ 
+                    div.innerHTML = "<div style='padding:10px; color:#999; font-style:italic; text-align:center'>Chưa có lịch sử hoạt động.</div>"; 
+                    return; 
+                } 
+                let h = `<table class="history-table"><thead><tr><th style="background:#34495e; color:white">Thời gian</th><th style="background:#34495e; color:white">Hành động</th><th style="background:#34495e; color:white">Người dùng</th></tr></thead><tbody>`; 
+                logs.forEach(l => { 
+                    let statusClass = l.action === "ON" ? "badge-on" : "badge-off";
+                    h += `<tr><td><i class="far fa-clock"></i> ${l.time}</td><td class="${statusClass}">${l.action}</td><td><i class="far fa-user"></i> ${l.user}</td></tr>`; 
+                }); 
+                h += `</tbody></table>`; 
+                div.innerHTML = h; 
+            } catch(e) { console.error(e); } 
+        }
 
-        // --- NOTIFICATIONS ---
-        function updateBell(data) {
-            const badge = document.getElementById('notify-count');
-            if (data.length > 0) { 
-                badge.innerText = data.length; badge.style.display = 'block'; 
-            } else { badge.style.display = 'none'; }
-            
-            const list = document.getElementById('notify-list');
-            if(data.length === 0) list.innerHTML = "Không có thông báo mới";
-            else {
-                list.innerHTML = data.map(n => `<div class="notify-item"><b>${n.name}</b>: ${n.action}<br><small>${n.time}</small></div>`).join('');
-            }
-        }
-        function toggleNotify(e) { e.stopPropagation(); document.getElementById('notify-dropdown').classList.toggle('show'); }
-        async function clearNotifications() { await fetch(`${API_BASE}/api/notifications/clear`, {method: "POST"}); updateDashboard(); }
+        function toggleHistory(id) { 
+            const row = document.getElementById(`history-${id}`); 
+            if(openHistoryIds.has(id)){ openHistoryIds.delete(id); row.classList.remove('open'); } 
+            else { openHistoryIds.add(id); row.classList.add('open'); fetchHistory(id); } 
+        }
 
-        function renderNotificationPage(notis) {
-            const tbody = document.getElementById('notify-body');
-            tbody.innerHTML = notis.map(n => `<tr><td>${n.time}</td><td>${n.name}</td><td>${n.action}</td><td>${n.user}</td></tr>`).join('');
-        }
-        
-        // --- CAMERA STREAM ---
-        const videoEl = document.getElementById('videoStreamElement');
-        const ph = document.getElementById('streamPlaceholder');
-        function startStream() { videoEl.src = `${CAM_BASE}/video_feed`; videoEl.style.display = 'block'; ph.style.display = 'none'; }
-        function stopStream() { videoEl.src = ""; videoEl.style.display = 'none'; ph.style.display = 'block'; }
+        function renderStatsTable(devices) { 
+            const tbody = document.getElementById('stats-body'); 
+            let html = ""; 
+            devices.forEach(d => { 
+                let currentRun = 0; let statusBadge = '<span style="color:#95a5a6; font-weight:bold; background:#eee; padding:2px 8px; border-radius:10px">Đã tắt</span>';
+                if(d.status === "ON") {
+                    statusBadge = '<span class="badge-on">ĐANG CHẠY</span>';
+                    if (d.last_on_time) currentRun = (Date.now()/1000) - d.last_on_time; 
+                }
+                const totalSeconds = d.total_on_time + currentRun; 
+                const h = Math.floor(totalSeconds / 3600); 
+                const m = Math.floor((totalSeconds % 3600) / 60); 
+                const s = Math.floor(totalSeconds % 60); 
+                const totalTimeStr = `${h}h ${m}m ${s}s`; 
 
-        // --- INIT ---
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("🚀 Started...");
-            checkLogin();
-            updateDashboard();
-            setInterval(() => { if (currentView !== 'account') updateDashboard(); }, 1000);
-            
-            // Xử lý đổi pass
-             const passForm = document.getElementById('change-pass-form');
-             if(passForm) {
-                 passForm.addEventListener('submit', async (e) => {
-                     e.preventDefault();
-                     const oldP = document.getElementById('old-pass').value;
-                     const newP = document.getElementById('new-pass').value;
-                     const confP = document.getElementById('confirm-pass').value;
-                     if(newP !== confP) return Swal.fire("Lỗi", "Mật khẩu không khớp", "error");
-                     
-                     const res = await fetch('/change_password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({old_password:oldP, new_password:newP})});
-                     const d = await res.json();
-                     if(d.success) { Swal.fire("Thành công", "", "success"); passForm.reset(); }
-                     else Swal.fire("Thất bại", "", "error");
-                 });
-             }
-        });
-        
-        window.onclick = function(e) {
-            if(!e.target.closest('.notify-box')) document.getElementById('notify-dropdown').classList.remove('show');
-        }
-    </script>
+                let detailsHTML = `<div style="padding:10px; color:#999; text-align:center; font-style:italic">Chưa có dữ liệu sử dụng.</div>`; 
+                if ((d.usage_logs && d.usage_logs.length > 0) || d.status === "ON") { 
+                    detailsHTML = `<table class="detail-table"><thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Thời lượng</th></tr></thead><tbody>`; 
+                    if (d.status === "ON") { 
+                        const curH = Math.floor(currentRun / 3600); const curM = Math.floor((currentRun % 3600) / 60); const curS = Math.floor(currentRun % 60);
+                        const startTime = new Date(d.last_on_time * 1000).toLocaleTimeString(); 
+                        detailsHTML += `<tr style="background:#e8f5e9; font-weight:bold; color:#27ae60"><td>${startTime}</td><td>Running...</td><td>${curH}h ${curM}m ${curS}s</td></tr>`; 
+                    } 
+                    if (d.usage_logs) { 
+                        d.usage_logs.forEach(log => { 
+                            const duration = Math.round(log.duration);
+                            const lh = Math.floor(duration / 3600); const lm = Math.floor((duration % 3600) / 60); const ls = duration % 60;
+                            detailsHTML += `<tr><td>${log.start}</td><td>${log.end}</td><td>${lh}h ${lm}m ${ls}s</td></tr>`; 
+                        }); 
+                    } 
+                    detailsHTML += `</tbody></table>`; 
+                } 
+                const isOpen = openStatsIds.has(d.id) ? 'open' : ''; 
+                const iconClass = isOpen ? 'fa-chevron-up' : 'fa-chevron-down';
+                html += `<tr class="stats-main-row" onclick="toggleStats(${d.id})"><td style="font-weight:500"><strong>#${d.id}</strong> - ${d.name}</td><td style="text-align:center">${statusBadge}</td><td style="font-weight:bold; color:#2c3e50; text-align:center">${totalTimeStr}</td><td style="text-align:center"><i class="fas ${iconClass}" style="color:#aaa; transition:0.3s;"></i></td></tr><tr class="stats-detail-row ${isOpen}" id="stats-detail-${d.id}"><td colspan="4" style="padding:0 !important; background:#fffcf5"><div style="padding:15px; border-top:1px dashed #ddd">${detailsHTML}</div></td></tr>`; 
+            }); 
+            if (tbody.innerHTML !== html) tbody.innerHTML = html; 
+        }
+
+        function toggleStats(id) { 
+            const row = document.getElementById(`stats-detail-${id}`); 
+            if (openStatsIds.has(id)) { openStatsIds.delete(id); row.classList.remove('open'); } 
+            else { openStatsIds.add(id); row.classList.add('open'); }
+            updateDashboard();
+        }
+
+        function renderSensorPanel(devices) {
+            const containerLocal = document.getElementById('sensor-body-local'); 
+            const containerRemote = document.getElementById('sensor-body-remote');
+            if (!devices || devices.length === 0) return;
+            const d = devices[0]; 
+
+            const tempLocal = (d.temp && d.temp !== "--") ? d.temp.toFixed(1) + "°C" : "--";
+            const humLocal = (d.hum && d.hum !== "--") ? d.hum.toFixed(1) + "%" : "--";
+            
+            const pirText = d.pir == 1 
+                ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` 
+                : `<span style="color:#95a5a6">Không</span>`;
+
+            // === ALERT LOGIC ===
+            const alertBanner = document.getElementById('header-alert');
+            
+            // 1. Header Alert (Always show if PIR=1)
+            if (d.pir == 1) {
+                if (alertBanner) alertBanner.style.display = 'flex';
+            } else {
+                if (alertBanner) alertBanner.style.display = 'none';
+            }
+
+            // 2. Popup & Bell (Only once)
+            // Fix: Check lastPirState BEFORE updating it
+            if (d.pir == 1 && (lastPirState[d.id] === undefined || lastPirState[d.id] == 0)) {
+                console.log("TRIGGER ALARM!");
+                // 3. Update state immediately to prevent loop
+                lastPirState[d.id] = 1; 
+                
+                // Show Bell
+                const bell = document.getElementById('bell-icon'); 
+                if(bell) {
+                    bell.classList.add('shake'); 
+                    setTimeout(() => bell.classList.remove('shake'), 500);
+                }
+            } else if (d.pir == 0) {
+                lastPirState[d.id] = 0;
+            }
+            // ===================
+
+            const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
+            const humRemote = (d.hum2 && d.hum2 !== "--") ? d.hum2.toFixed(1) + "%" : "--";
+            const gasRemote = (d.gas && d.gas !== "--") ? d.gas : "--";
+            
+            let galleryHeader = d.pir === 1 || (d.images && d.images.length > 0) ? `<div class="warning-alert" onclick="toggleGallery()"><i class="fas fa-exclamation-circle icon"></i><span class="message">CẢNH BÁO CÓ NGƯỜI</span><i class="fas ${isGalleryOpen ? 'fa-chevron-up' : 'fa-chevron-down'}" id="gallery-toggle-icon" style="margin-left:auto; color:#c0392b"></i></div>` : `<div class="safe-alert"><i class="fas fa-check-circle icon"></i><span class="message">KHU VỰC AN TOÀN</span></div>`;
+            let galleryContent = `<div class="gallery-content" id="gallery-content"></div>`; 
+            let contentHtml = '';
+            let latestImageTime = '00:00:00 01/01';
+
+            if (d.images && d.images.length > 0) {
+                const latestImg = d.images[0];
+                const fullUrl = `${API_BASE}/static/${latestImg.filename}`;
+                const camImg = document.getElementById('latest-snapshot');
+                const camNoImg = document.getElementById('no-snapshot');
+                const camTime = document.getElementById('snapshot-time');
+                if(camImg && camNoImg) { camImg.src = fullUrl; camImg.style.display = 'block'; camNoImg.style.display = 'none'; camTime.innerText = latestImg.time; }
+                latestImageTime = latestImg.time;
+                d.images.forEach(img => { const url = `${API_BASE}/static/${img.filename}`; const name = `capture_${img.time.replace(/[:\/ ]/g, '_')}.jpg`; contentHtml += `<div class="img-item"><img src="${url}" class="img-thumb" onclick="showImage('${url}', '${img.time}')"><div style="font-size:0.9em; flex:1; cursor:pointer" onclick="showImage('${url}', '${img.time}')"><i class="far fa-clock"></i> ${img.time}<br><span style="color:#e74c3c; font-size:0.8em; font-weight:bold">Phát hiện</span></div><button class="btn-download" onclick="downloadImage('${url}', '${name}')" title="Tải ảnh"><i class="fas fa-download"></i></button></div>`; }); 
+                galleryContent = `<div class="gallery-content ${isGalleryOpen ? 'open' : ''}" id="gallery-content">${contentHtml}</div>`;
+            } else if (d.pir === 1) { galleryContent = `<div class="gallery-content open" id="gallery-content"><div style="font-size:0.9em; color:#e74c3c; font-style:italic; padding:10px">Đang chờ ảnh từ camera...</div></div>`; }
+
+            const htmlLocal = `<div class="sensor-card"><div class="sensor-row"><span><i class="fas fa-temperature-high" style="color:#e74c3c"></i> Nhiệt độ</span><span style="font-weight:bold; color:#333">${tempLocal}</span></div><div class="sensor-row"><span><i class="fas fa-tint" style="color:#3498db"></i> Độ ẩm</span><span style="font-weight:bold; color:#333">${humLocal}</span></div><div class="sensor-row"><span><i class="fas fa-eye" style="color:#2ecc71"></i> Chuyển động</span><span>${pirText}</span></div><div class="gallery-container">${galleryHeader}${galleryContent}<input type="hidden" id="gallery-latest-time" value="${latestImageTime}"></div></div>`;
+            const htmlRemote = `<div class="sensor-card" style="border-top: 4px solid #8e44ad;"><div class="sensor-row"><span><i class="fas fa-temperature-high" style="color:#e74c3c"></i> Nhiệt độ</span><span style="font-weight:bold; color:#333">${tempRemote}</span></div><div class="sensor-row"><span><i class="fas fa-tint" style="color:#3498db"></i> Độ ẩm</span><span style="font-weight:bold; color:#333">${humRemote}</span></div><div class="sensor-row"><span><i class="fas fa-burn" style="color:#d35400"></i> Khí Gas</span><span style="font-weight:bold; color:#333">${gasRemote}</span></div></div>`;
+            
+            if (containerLocal.innerHTML !== htmlLocal) containerLocal.innerHTML = htmlLocal;
+            if (containerRemote.innerHTML !== htmlRemote) containerRemote.innerHTML = htmlRemote;
+        }
+
+        function updateBell(data) { 
+            const unreadCount = data.length;
+            const badge = document.getElementById('notify-count'); 
+            if (unreadCount > 0) { badge.innerText = unreadCount > 9 ? '9+' : unreadCount; badge.style.display = 'block'; const bell = document.getElementById('bell-icon'); if (JSON.stringify(data) !== lastNotifySignature) { bell.classList.add('shake'); setTimeout(() => bell.classList.remove('shake'), 500); } } else { badge.style.display = 'none'; } 
+            const currentSig = JSON.stringify(data); if (currentSig === lastNotifySignature) return; lastNotifySignature = currentSig; 
+            const listDiv = document.getElementById('notify-list'); 
+            if (data.length === 0) { listDiv.innerHTML = '<div style="padding:20px; text-align:center; color:#999; font-style:italic">Không có thông báo mới</div>'; return; } 
+            let html = ''; data.forEach(item => { let cls = 'act-on'; let displayName = item.name; if(item.action === 'OFF') cls = 'act-off'; if(item.action.includes('CHỤP') || item.action.includes('PHÁT HIỆN')) { cls = 'act-cam'; } if(item.action.includes('THÊM')) cls = 'act-add'; if(item.action.includes('XÓA')) cls = 'act-del'; html += `<div class="notify-item"><div class="n-row1"><span>${displayName}</span><span class="n-action ${cls}">${item.action}</span></div><div class="n-row2"><span><i class="far fa-clock"></i> ${item.time}</span></div></div>`; }); listDiv.innerHTML = html; 
+        }
+
+        function toggleNotify(event) { 
+            if (event) event.stopPropagation(); 
+            const dd = document.getElementById('notify-dropdown'); 
+            dd.classList.toggle('show'); 
+            if (dd.classList.contains('show')) { 
+                if (globalNotifications.length > 0) { lastViewedTimestamp = globalNotifications[0].ts; } 
+                document.getElementById('notify-count').style.display = 'none'; 
+            } 
+        }
+
+        async function clearNotifications() { try { await fetch(`${API_BASE}/api/notifications/clear`, { method: "POST" }); document.getElementById('notify-dropdown').classList.remove('show'); updateDashboard(); const Toast = Swal.mixin({toast: true, position: 'top-end', showConfirmButton: false, timer: 1500}); Toast.fire({icon: 'success', title: 'Đã xóa thông báo'}); } catch(e) { console.error("Lỗi xóa thông báo"); } }
+        function renderNotificationPage(notis) { const tbody = document.getElementById('notify-body'); if (notis.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px">Chưa có dữ liệu</td></tr>'; return; } let html = ""; notis.forEach(n => { let badgeClass = "tag-user"; if (n.user === "System") badgeClass = "tag-sys"; let rowColor = ""; if (n.action.includes("CHỤP") || n.action.includes("PHÁT HIỆN")) rowColor = "background:#fffbf0"; let displayName = n.name; html += `<tr style="${rowColor}"><td style="color:#555">${n.time}</td><td style="font-weight:500">${displayName} <small style="color:#999">#${n.id}</small></td><td style="font-weight:bold">${n.action}</td><td><span class="tag ${badgeClass}">${n.user}</span></td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
+
+        function renderDevelopmentView(devices) { const tbody = document.getElementById('dev-body'); let html = ""; devices.forEach(d => { const pinDisplay = d.pin ? d.pin : "N/A"; html += `<tr><td><strong>#${d.id}</strong></td><td>${d.name}</td><td><span class="pin-badge">GPIO ${pinDisplay}</span></td><td style="font-weight:bold; color: ${d.status==='ON'?'green':'red'}">${d.status}</td></tr>`; }); if (tbody.innerHTML !== html) tbody.innerHTML = html; }
+        
+        function updateHTML(el, html) { if (el && el.innerHTML !== html) el.innerHTML = html; }
+        async function handleAddDevice() { const name = document.getElementById('new-dev-name').value; if(!name) return Swal.fire("Lỗi", "Vui lòng nhập tên", "error"); await fetch(`${API_BASE}/api/devices`, {method: "POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({name: name})}); document.getElementById('new-dev-name').value = ""; updateDashboard(); Swal.fire("Thành công", "Đã thêm thiết bị", "success"); }
+        async function controlDevice(id, action) { await fetch(`${API_BASE}/api/devices/${id}/${action}`, {method: "POST"}, {credentials: "include"}); updateDashboard(); }
+        
+        function deleteDevice(id) {
+            Swal.fire({
+                title: 'Bạn chắc chắn?',
+                text: "Thiết bị sẽ bị xóa vĩnh viễn và GPIO sẽ được thu hồi!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Xóa ngay!',
+                cancelButtonText: 'Hủy'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/devices/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (data.success) {
+                            Swal.fire('Đã xóa!', 'Thiết bị đã được gỡ bỏ.', 'success');
+                            updateDashboard();
+                        } else {
+                            Swal.fire('Lỗi', data.message, 'error');
+                        }
+                    } catch (e) {
+                        Swal.fire('Lỗi kết nối', '', 'error');
+                    }
+                }
+            })
+        }
+
+        async function renameDevice(id, oldName) {
+            const { value: newName } = await Swal.fire({
+                title: 'Đổi tên thiết bị',
+                input: 'text',
+                inputLabel: 'Nhập tên mới',
+                inputValue: oldName,
+                showCancelButton: true,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Bạn chưa nhập tên mới!'
+                    }
+                }
+            })
+
+            if (newName) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/devices/${id}/rename`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        Swal.fire('Thành công', 'Tên thiết bị đã được cập nhật', 'success');
+                        updateDashboard();
+                    } else {
+                        Swal.fire('Lỗi', data.message, 'error');
+                    }
+                } catch (e) {
+                    Swal.fire('Lỗi kết nối', '', 'error');
+                }
+            }
+        }
+
+        function initCharts(data5m, data1h) {
+            const ctx5m = document.getElementById('chart5m').getContext('2d'); if(chart5m) chart5m.destroy(); chart5m = new Chart(ctx5m, { type: 'line', data: { labels: data5m.map(d => d.time), datasets: [{ label: 'Nhiệt độ (°C)', data: data5m.map(d => d.temp), borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.1)', borderWidth: 2, tension: 0.3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
+            const ctx1h = document.getElementById('chart1h').getContext('2d'); if(chart1h) chart1h.destroy(); chart1h = new Chart(ctx1h, { type: 'bar', data: { labels: data1h.map(d => d.time), datasets: [{ label: 'Nhiệt độ TB', data: data1h.map(d => d.temp), backgroundColor: '#e67e22', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: false } } } });
+        }
+        async function loadCharts() { try { const res = await fetch(`${API_BASE}/api/stats`, {credentials: "include"}); const data = await res.json(); initCharts(data.chart_5m, data.chart_1h); } catch(e) { console.error("Lỗi chart"); } }
+
+        const videoEl = document.getElementById('videoStreamElement');
+        const streamPlaceholder = document.getElementById('streamPlaceholder');
+        const streamControls = document.getElementById('streamControls');
+        const statusStreamTxt = document.getElementById('status-stream');
+        function startStream() { const timestamp = new Date().getTime(); videoEl.src = `${CAM_BASE}/video_feed?t=${timestamp}`; videoEl.style.display = 'block'; streamPlaceholder.style.display = 'none'; streamControls.classList.add('streaming-active'); statusStreamTxt.innerHTML = '<span style="color:green; font-weight:bold">ĐANG BẬT LIVE</span>'; }
+        function stopStream() { videoEl.src = ""; videoEl.style.display = 'none'; streamPlaceholder.style.display = 'block'; streamControls.classList.remove('streaming-active'); statusStreamTxt.innerHTML = '<span style="color:red; font-weight:bold">ĐANG TẮT</span>'; }
+        function toggleGallery() { const content = document.getElementById('gallery-content'); const icon = document.getElementById('gallery-toggle-icon'); isGalleryOpen = !isGalleryOpen; if (isGalleryOpen) { content.classList.add('open'); icon.classList.replace('fa-chevron-down', 'fa-chevron-up'); updateDashboard(); } else { content.classList.remove('open'); icon.classList.replace('fa-chevron-up', 'fa-chevron-down'); } }
+        function downloadImage(url, filename) { event.stopPropagation(); const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
+        function showImage(url, timestamp) { Swal.fire({ imageUrl: url, imageAlt: 'Evidence', title: timestamp, width: 600, showConfirmButton: false }); lastSeenImageTime = timestamp; localStorage.setItem('lastSeenImageTime', timestamp); updateDashboard(); }
+
+        setInterval(loadCharts, 43200000); 
+        
+        window.onclick = function(event) { 
+            if (!event.target.closest('.notify-box') && !event.target.closest('.notify-dropdown')) { 
+                const dd = document.getElementById('notify-dropdown'); 
+                if (dd && dd.classList.contains('show')) {
+                    dd.classList.remove('show'); 
+                    if (globalNotifications.length > 0) { lastViewedTimestamp = globalNotifications[0].ts; }
+                    updateDashboard(); 
+                }
+            } 
+            if (!event.target.closest('.sidebar') && !event.target.closest('.menu-btn') && document.getElementById('sidebar').classList.contains('active')) {
+                closeMenu();
+            }
+        } 
+        
+// --- KHỞI ĐỘNG ỨNG DỤNG ---
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("🚀 Web đã tải xong, bắt đầu lấy dữ liệu...");
+
+            // 1. Kiểm tra đăng nhập (Chạy ngầm, không chặn giao diện)
+            checkLogin(); 
+
+            // 2. Tải dữ liệu ngay lập tức (Không cần chờ login)
+            updateDashboard();
+
+            // 3. Thiết lập vòng lặp tự động cập nhật (1 giây/lần)
+            setInterval(() => {
+                // Chỉ cập nhật khi không ở trang Account (để tránh lag khi đổi pass)
+                if (currentView !== 'account') {
+                    updateDashboard();
+                }
+            }, 1000);
+            
+            // 4. Cập nhật biểu đồ chậm hơn (5 phút/lần)
+            setInterval(loadCharts, 300000); 
+        });
+    </script>
 </body>
 </html>
