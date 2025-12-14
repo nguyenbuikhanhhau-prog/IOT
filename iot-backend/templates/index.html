@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         /* === CSS CƠ BẢN (GIỮ NGUYÊN) === */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
@@ -308,7 +308,17 @@
     </div>
 
     <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
-
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+  <div id="alarmToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas fa-user-secret fa-lg me-2"></i>
+        <strong>CẢNH BÁO:</strong> Phát hiện có người!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
     <script>
         const API_BASE = ""; 
         const CAM_BASE = "http://localhost:5001";
@@ -589,23 +599,26 @@ const pirText = d.pir == 1
     : `<span style="color:#95a5a6">Không</span>`;
 
 // SỬA: Logic popup cảnh báo
+// === CODE MỚI: KÍCH HOẠT POPUP BOOTSTRAP ===
 if (lastPirState[d.id] == 0 && d.pir == 1) { 
-    Swal.fire({ 
-        toast: true, 
-        position: 'top-end', 
-        icon: 'warning', 
-        title: 'CẢNH BÁO CÓ NGƯỜI !', 
-        showConfirmButton: false, 
-        timer: 3000, 
-        timerProgressBar: true, 
-        background: '#fdede9', 
-        color: '#c0392b', 
-        iconColor: '#e74c3c' 
-    }); 
+    // 1. Tìm cái khung Toast mà bạn đã dán ở cuối file
+    const toastEl = document.getElementById('alarmToast');
+    
+    // 2. Tạo đối tượng Bootstrap Toast và hiện nó lên
+    if (toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
+
+    // 3. Rung chuông (Giữ nguyên logic cũ của bạn)
     const bell = document.getElementById('bell-icon'); 
     bell.classList.add('shake'); 
     setTimeout(() => bell.classList.remove('shake'), 500);
+    
+    // (Tùy chọn) Phát âm thanh nếu muốn
+    // new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play();
 }
+// === KẾT THÚC CODE MỚI ===
 lastPirState[d.id] = d.pir; // Lưu lại trạng thái
             
             const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
@@ -778,4 +791,5 @@ lastPirState[d.id] = d.pir; // Lưu lại trạng thái
     </script>
 </body>
 </html>
+
 
