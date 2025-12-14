@@ -346,26 +346,29 @@ def send_email_sendgrid(to_email, new_password):
         print(f"❌ Lỗi SendGrid: {e}")
         return False
 
+def generate_random_password(length=8):
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
+
+
 @app.route("/forgot_password", methods=["POST"])
 def forgot_password():
     data = request.get_json()
     email = data.get("email")
 
-    user = User.query.filter_by(email=email).first()
+    user = next((u for u in users if u["email"] == email), None)
     if not user:
-        return jsonify(success=False, message="Email không tồn tại"), 404
+        return jsonify({"success": False, "message": "Email không tồn tại"}), 404
 
     new_password = generate_random_password()
-    user.password = hash_password(new_password)
-    db.session.commit()
+    user["password"] = bcrypt.generate_password_hash(new_password).decode("utf-8")
 
-    send_email(
-        to=email,
-        subject="Khôi phục mật khẩu",
-        content=f"Mật khẩu mới của bạn là: {new_password}"
-    )
+    ok = send_email_sendgrid(email, new_password)
+    if not ok:
+        return jsonify({"success": False, "message": "Không gửi được email"}), 500
 
-    return jsonify(success=True, message="Mật khẩu mới đã được gửi qua email")
+    return jsonify({"success": True, "message": "Mật khẩu mới đã được gửi qua email"})
+
 
 # ===============================
 # 7. RUN
@@ -385,6 +388,7 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
