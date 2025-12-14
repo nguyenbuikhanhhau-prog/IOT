@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard IOT Hajju</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -19,31 +22,11 @@
         .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .header i.logo { font-size: 28px; color: #009879; }
         
-        /* CẢNH BÁO HEADER (GHIM CỨNG Ở GIỮA) */
-        #header-alert {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            display: none; /* Mặc định ẩn */
-            color: #c0392b;
-            font-weight: bold;
-            font-size: 1.4em;
-            align-items: center;
-            gap: 10px;
-            animation: blink 1s infinite;
-            white-space: nowrap;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 5px 15px;
-            border-radius: 8px;
-            border: 2px solid #c0392b; /* Thêm viền đỏ cho nổi */
-        }
-        @keyframes blink { 50% { opacity: 0.5; } }
-        
         .toolbar { background: #2c3e50; color: white; padding: 10px 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .menu-btn { font-size: 20px; cursor: pointer; color: white; padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); transition: 0.3s; display: flex; align-items: center; gap: 8px; }
         .menu-btn:hover { background: rgba(255,255,255,0.1); }
         .current-view-title { font-weight: bold; text-transform: uppercase; font-size: 0.9em; opacity: 0.8; border-left: 1px solid #7f8c8d; padding-left: 15px; }
+        
         .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #1a252f; color: white; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; box-shadow: 4px 0 15px rgba(0,0,0,0.3); }
         .sidebar.active { left: 0; }
         .sidebar-header { padding: 20px; background: #009879; font-weight: bold; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -53,12 +36,15 @@
         .menu-item:hover { background: #2c3e50; padding-left: 30px; }
         .menu-item.active { background: #2c3e50; border-left: 5px solid #009879; color: #009879; font-weight: bold; }
         .menu-item i { width: 25px; text-align: center; }
+        
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1500; display: none; backdrop-filter: blur(2px); }
         .overlay.active { display: block; }
+        
         .notify-box { position: relative; cursor: pointer; margin-right: 10px; }
         .notify-icon { font-size: 26px; color: #555; transition: 0.3s; display: inline-block; }
         .notify-icon:hover { color: #009879; }
         .notify-badge { position: absolute; top: -6px; right: -6px; background: #e74c3c; color: white; border-radius: 50%; padding: 2px 6px; font-size: 11px; font-weight: bold; display: none; animation: popIn 0.3s; border: 2px solid white; }
+        
         .notify-dropdown { position: absolute; top: 50px; right: 0; width: 360px; background: white; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; z-index: 1000; border: 1px solid #eee; max-height: 450px; overflow-y: auto; }
         .notify-dropdown.show { display: block; animation: fadeIn 0.2s; }
         .notify-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; color: #2c3e50; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
@@ -68,10 +54,12 @@
         .n-row2 { font-size: 0.85em; color: #7f8c8d; display: flex; justify-content: space-between; align-items: center; }
         .n-action { padding: 3px 8px; border-radius: 4px; font-size: 0.75em; color: white; text-transform: uppercase; font-weight: bold; }
         .act-on { background: #27ae60; } .act-off { background: #e74c3c; } .act-cam { background: #f39c12; } .act-add { background: #3498db; } .act-del { background: #95a5a6; }
+        
         .section-view { display: none; padding: 30px; max-width: 1400px; margin: 0 auto; animation: slideUp 0.4s; }
         .section-view.active { display: block; }
         .control-layout { display: flex; gap: 30px; align-items: flex-start; }
         .control-left { flex: 3; } .control-right { flex: 1; min-width: 350px; }
+        
         .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .panel-title { font-size: 20px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 10px; }
         .add-device-group { display: flex; gap: 10px; }
@@ -79,21 +67,26 @@
         .input-device-name:focus { border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
         .btn-add { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; white-space: nowrap; }
         .btn-add:hover { background: #2980b9; transform: translateY(-1px); }
+        
         .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: 500; transition: 0.2s; font-size: 0.9em; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
         .btn:active { transform: scale(0.98); }
         .btn-on { background: #ecf0f1; color: #7f8c8d; } .btn-on.active { background: #2ecc71; color: white; box-shadow: 0 4px 10px rgba(46, 204, 113, 0.4); }
         .btn-off { background: #ecf0f1; color: #7f8c8d; } .btn-off.active { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.4); }
         .btn-del { background: #fff0f0; color: #c0392b; padding: 8px 12px; } .btn-del:hover { background: #c0392b; color: white; }
         .btn-edit { background: #eaf2f8; color: #3498db; padding: 8px 12px; } .btn-edit:hover { background: #3498db; color: white; }
+        
         .iot-table { width: 100%; border-collapse: separate; border-spacing: 0; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.05); table-layout: fixed; }
         .iot-table th { background: #009879; color: white; padding: 15px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 0.5px; }
         .iot-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; color: #555; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .iot-table tr:last-child td { border-bottom: none; }
+        
         .cell-actions { display: flex; align-items: center; gap: 8px; justify-content: center; } 
+        
         .sensor-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; border-top: 4px solid #009879; transition: 0.3s; }
         .sensor-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .sensor-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05em; padding-bottom: 5px; border-bottom: 1px dashed #eee; }
         .sensor-row:last-child { border-bottom: none; margin-bottom: 0; }
+        
         .warning-alert { background-color: #fdede9; color: #c0392b; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; border-left: 4px solid #e74c3c; }
         .warning-alert:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .warning-alert .icon { font-size: 24px; color: #e74c3c; }
@@ -101,17 +94,21 @@
         .safe-alert { background-color: #f0fdf4; color: #155724; padding: 12px 20px; border-radius: 8px; display: flex; align-items: center; gap: 15px; margin-top: 15px; border-left: 4px solid #28a745; }
         .safe-alert .icon { font-size: 24px; color: #28a745; }
         .safe-alert .message { font-weight: 600; font-size: 0.95em; }
+        
         .img-item { display: flex; align-items: center; gap: 15px; margin-top: 8px; cursor: pointer; background: #fff; padding: 8px; border: 1px solid #eee; border-radius: 8px; transition: 0.2s; position: relative; }
         .img-item:hover { transform: translateX(5px); border-color: #3498db; }
         .img-thumb { width: 60px; height: 40px; object-fit: cover; border-radius: 4px; }
         .btn-download { margin-left: auto; border: none; cursor: pointer; background: #f1f1f6; color: #555; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.3s; border: 1px solid #ddd; }
         .btn-download:hover { background: #3498db; color: white; border-color: #3498db; }
+        
         .gallery-container { margin-top: 5px; padding-top: 5px; }
         .gallery-content { display: none; max-height: 300px; overflow-y: auto; padding-top: 10px; }
         .gallery-content.open { display: block; }
+        
         .camera-snapshot-box { background: black; border-radius: 10px; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .latest-image, #videoStreamElement { width: 100%; height: 100%; object-fit: contain; }
         .no-image-text { color: #7f8c8d; text-align: center; }
+        
         .stream-controls { display: flex; gap: 10px; margin-bottom: 15px; }
         .btn-stream { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; color: white; }
         .btn-stream-on { background: #2ecc71; }
@@ -120,10 +117,12 @@
         .streaming-active .btn-stream-on { opacity: 0.5; pointer-events: none; }
         .streaming-active .btn-stream-off { opacity: 1; pointer-events: auto; background: #e74c3c; }
         .streaming-active .btn-stream-off:hover { background: #c0392b; }
+        
         .history-row { display: none; background-color: #f8f9fa; } .history-row.open { display: table-row; }
         .history-content { padding: 20px !important; text-align: left !important; }
         .history-table { width: 100%; border: 1px solid #ddd; background: white; font-size: 0.9em; border-collapse: collapse; }
         .history-table th, .history-table td { padding: 10px; border: 1px solid #eee; }
+        
         .badge-on { color: #27ae60; font-weight: bold; background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; } 
         .badge-off { color: #c0392b; font-weight: bold; background: #fbecec; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; }
         .dev-table th { background: #8e44ad; } 
@@ -131,10 +130,12 @@
         .notify-view-table th { background: #34495e; }
         .tag { padding: 4px 10px; border-radius: 15px; font-size: 0.85em; color: white; font-weight: 500; }
         .tag-sys { background: #f39c12; } .tag-user { background: #3498db; }
+        
         .charts-wrapper { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
         .chart-card { flex: 1; min-width: 400px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .chart-title { font-weight: bold; color: #555; margin-bottom: 15px; text-align: center; }
         .chart-container { position: relative; height: 300px; width: 100%; }
+        
         .stats-main-row { cursor: pointer; transition: 0.2s; }
         .stats-main-row:hover { background: #f0fdfa; }
         .stats-detail-row { display: none; background: #fffcf5; }
@@ -142,10 +143,12 @@
         .detail-table { width: 100%; font-size: 0.9em; border: 1px dashed #ddd; margin-top: 10px; background: white; }
         .detail-table th { background: #f39c12; color: white; padding: 8px; }
         .detail-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+        
         @keyframes bell-shake { 0% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-5deg); } 45% { transform: rotate(4deg); } 60% { transform: rotate(-4deg); } 100% { transform: rotate(0); } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
         @media (max-width: 900px) { 
             .control-layout { flex-direction: column; } 
             .control-right { width: 100%; } 
@@ -160,10 +163,6 @@
         <div class="header-left">
             <i class="fas fa-network-wired logo"></i>
             <h1>Dashboard IOT Hajju</h1>
-        </div>
-
-        <div id="header-alert">
-            <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI !!!
         </div>
 
         <div class="notify-box" onclick="toggleNotify(event)">
@@ -344,6 +343,18 @@
 
     <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
     
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+      <div id="alarmToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+          <div class="toast-body">
+            <i class="fas fa-user-secret fa-lg me-2"></i>
+            <strong>CẢNH BÁO:</strong> Phát hiện có người!
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    </div>
+
     <script>
         const API_BASE = ""; 
         const CAM_BASE = "http://localhost:5001";
@@ -615,33 +626,24 @@
                 ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` 
                 : `<span style="color:#95a5a6">Không</span>`;
 
-            // === ALERT LOGIC ===
-            const alertBanner = document.getElementById('header-alert');
+            // === LOGIC POPUP & HEADER ===
             
-            // 1. Header Alert (Always show if PIR=1)
-            if (d.pir == 1) {
-                if (alertBanner) alertBanner.style.display = 'flex';
-            } else {
-                if (alertBanner) alertBanner.style.display = 'none';
-            }
-
-            // 2. Popup & Bell (Only once)
-            // Fix: Check lastPirState BEFORE updating it
-            if (d.pir == 1 && (lastPirState[d.id] === undefined || lastPirState[d.id] == 0)) {
-                console.log("TRIGGER ALARM!");
-                // 3. Update state immediately to prevent loop
-                lastPirState[d.id] = 1; 
-                
-                // Show Bell
+            // 1. Popup & Bell (Kích hoạt khi mới phát hiện)
+            if (d.pir == 1 && lastPirState[d.id] == 0) {
+                const toastEl = document.getElementById('alarmToast');
+                if (toastEl) {
+                    const toast = new bootstrap.Toast(toastEl);
+                    toast.show();
+                }
                 const bell = document.getElementById('bell-icon'); 
                 if(bell) {
                     bell.classList.add('shake'); 
                     setTimeout(() => bell.classList.remove('shake'), 500);
                 }
-            } else if (d.pir == 0) {
-                lastPirState[d.id] = 0;
             }
-            // ===================
+
+            // 2. Cập nhật trạng thái PIR cũ
+            lastPirState[d.id] = d.pir;
 
             const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
             const humRemote = (d.hum2 && d.hum2 !== "--") ? d.hum2.toFixed(1) + "%" : "--";
@@ -794,28 +796,14 @@
             }
         } 
         
-// --- KHỞI ĐỘNG ỨNG DỤNG ---
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("🚀 Web đã tải xong, bắt đầu lấy dữ liệu...");
-
-            // 1. Kiểm tra đăng nhập (Chạy ngầm, không chặn giao diện)
-            checkLogin(); 
-
-            // 2. Tải dữ liệu ngay lập tức (Không cần chờ login)
+        (async () => {
+            await checkLogin(); 
             updateDashboard();
-
-            // 3. Thiết lập vòng lặp tự động cập nhật (1 giây/lần)
             setInterval(() => {
-                // Chỉ cập nhật khi không ở trang Account (để tránh lag khi đổi pass)
-                if (currentView !== 'account') {
-                    updateDashboard();
-                }
+                // Update: Cho phép chạy ngầm để cập nhật dữ liệu liên tục
+                updateDashboard();
             }, 1000);
-            
-            // 4. Cập nhật biểu đồ chậm hơn (5 phút/lần)
-            setInterval(loadCharts, 300000); 
-        });
+        })();
     </script>
 </body>
 </html>
-
