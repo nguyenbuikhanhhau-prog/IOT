@@ -131,23 +131,21 @@
 </head>
 <body>
 
-<div class="header">
-    <div class="header-left">
-        <i class="fas fa-network-wired logo"></i>
-        <h1>Dashboard IOT Hajju</h1>
-    </div>
-
-    <div id="header-alert" style="display:none; color: #c0392b; font-weight: bold; font-size: 1.2em; align-items: center; gap: 10px; animation: blink 1s infinite;">
-        <i class="fas fa-exclamation-triangle"></i> CẢNH BÁO CÓ NGƯỜI !!!
-    </div>
-    <div class="notify-box" onclick="toggleNotify(event)">
-        <i class="fas fa-bell notify-icon" id="bell-icon"></i><span class="notify-badge" id="notify-count">0</span>
+    <div class="header">
+        <div class="header-left"><i class="fas fa-network-wired logo"></i><h1>Dashboard IOT Hajju</h1></div>
+        <div class="notify-box" onclick="toggleNotify(event)">
+            <i class="fas fa-bell notify-icon" id="bell-icon"></i><span class="notify-badge" id="notify-count">0</span>
+            <div class="notify-dropdown" id="notify-dropdown">
+                <div class="notify-header">
+                    <span><i class="fas fa-history"></i> Mới nhất</span>
+                    <span style="float:right; cursor:pointer; color:#e74c3c; font-size:0.9em;" onclick="clearNotifications()">
+                        <i class="fas fa-trash-alt"></i> Xóa
+                    </span>
+                </div>
+                <div id="notify-list">Đang tải...</div>
+            </div>
         </div>
-</div>
-
-<style>
-    @keyframes blink { 50% { opacity: 0.5; } }
-</style>
+    </div>
 
     <div class="toolbar">
         <div class="menu-btn" onclick="openMenu()"><i class="fas fa-bars"></i> Menu</div>
@@ -310,6 +308,17 @@
     </div>
 
     <div id="view-development" class="section-view"><div class="panel-header"><div class="panel-title"><i class="fas fa-microchip"></i> Cấu hình GPIO (Phần cứng)</div></div><div style="background: #fff; padding: 15px; border-radius:8px; margin-bottom:20px; box-shadow:0 2px 5px rgba(0,0,0,0.05); border-left: 5px solid #8e44ad;"><i class="fas fa-info-circle" style="color:#8e44ad"></i> Trang này hiển thị ánh xạ phần cứng (Chân GPIO ESP32) tương ứng với từng thiết bị.</div><table class="iot-table dev-table"><thead><tr><th>ID Thiết bị</th><th>Tên định danh</th><th>Chân GPIO (Output)</th><th>Trạng thái</th></tr></thead><tbody id="dev-body"></tbody></table></div>
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+  <div id="alarmToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body">
+        <i class="fas fa-user-secret fa-lg me-2"></i>
+        <strong>CẢNH BÁO:</strong> Phát hiện có người!
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
     <script>
         const API_BASE = ""; 
         const CAM_BASE = "http://localhost:5001";
@@ -589,32 +598,38 @@ const pirText = d.pir == 1
     ? `<span style="color:#e74c3c; font-weight:bold"><i class="fas fa-running"></i> CÓ NGƯỜI</span>` 
     : `<span style="color:#95a5a6">Không</span>`;
 
-// === CODE MỚI: HIỆN CẢNH BÁO THƯỜNG TRỰC ===
-const alertBanner = document.getElementById('header-alert');
-
-if (d.pir == 1) {
-    // 1. Nếu có người: Hiện dòng cảnh báo ngay lập tức
-    if (alertBanner) alertBanner.style.display = 'flex';
+// SỬA: Logic popup cảnh báo
+// === CODE MỚI: KÍCH HOẠT POPUP BOOTSTRAP ===
+if (lastPirState[d.id] == 0 && d.pir == 1) { 
+    // 1. Tìm cái khung Toast mà bạn đã dán ở cuối file
+    const toastEl = document.getElementById('alarmToast');
     
-    // 2. Chỉ rung chuông/phát tiếng KHI VỪA MỚI phát hiện (tránh spam âm thanh)
-    if (lastPirState[d.id] == 0) {
-        const bell = document.getElementById('bell-icon'); 
-        bell.classList.add('shake'); 
-        setTimeout(() => bell.classList.remove('shake'), 500);
-        
+    // 2. Tạo đối tượng Bootstrap Toast và hiện nó lên
+    if (toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
     }
-} else {
-    // 3. Nếu không có người: Ẩn ngay lập tức
-    if (alertBanner) alertBanner.style.display = 'none';
-}
 
-lastPirState[d.id] = d.pir; // Lưu trạng thái để so sánh lần sau
+    // 3. Rung chuông (Giữ nguyên logic cũ của bạn)
+    const bell = document.getElementById('bell-icon'); 
+    bell.classList.add('shake'); 
+    setTimeout(() => bell.classList.remove('shake'), 500);
+    
+    // (Tùy chọn) Phát âm thanh nếu muốn
+    // new Audio('https://www.soundjay.com/buttons/beep-01a.mp3').play();
+}
 // === KẾT THÚC CODE MỚI ===
 lastPirState[d.id] = d.pir; // Lưu lại trạng thái
             
             const tempRemote = (d.temp2 && d.temp2 !== "--") ? d.temp2.toFixed(1) + "°C" : "--";
             const humRemote = (d.hum2 && d.hum2 !== "--") ? d.hum2.toFixed(1) + "%" : "--";
             const gasRemote = (d.gas && d.gas !== "--") ? d.gas : "--";
+            
+            if (lastPirState[d.id] === 0 && d.pir === 1) { 
+                Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'CẢNH BÁO CÓ NGƯỜI !', showConfirmButton: false, timer: 3000, timerProgressBar: true, background: '#fdede9', color: '#c0392b', iconColor: '#e74c3c' }); 
+                const bell = document.getElementById('bell-icon'); bell.classList.add('shake'); setTimeout(() => bell.classList.remove('shake'), 500);
+            }
+            lastPirState[d.id] = d.pir;
 
             let galleryHeader = d.pir === 1 || (d.images && d.images.length > 0) ? `<div class="warning-alert" onclick="toggleGallery()"><i class="fas fa-exclamation-circle icon"></i><span class="message">CẢNH BÁO CÓ NGƯỜI</span><i class="fas ${isGalleryOpen ? 'fa-chevron-up' : 'fa-chevron-down'}" id="gallery-toggle-icon" style="margin-left:auto; color:#c0392b"></i></div>` : `<div class="safe-alert"><i class="fas fa-check-circle icon"></i><span class="message">KHU VỰC AN TOÀN</span></div>`;
             let galleryContent = `<div class="gallery-content" id="gallery-content"></div>`; 
@@ -776,6 +791,3 @@ lastPirState[d.id] = d.pir; // Lưu lại trạng thái
     </script>
 </body>
 </html>
-
-
-
