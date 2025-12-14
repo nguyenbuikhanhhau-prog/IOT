@@ -94,7 +94,7 @@ def add_notification(name, action, user="System"):
 # ===============================
 def process_camera_capture(trigger_source="AUTO"):
     try:
-        response = requests.get(f"{CAMERA_SERVICE_URL}/snapshot", timeout=3)
+        response = requests.get(f"{CAMERA_SERVICE_URL}/snapshot", timeout=10)
         if response.status_code == 200:
             filename = f"capture_{int(time.time())}.jpg"
             save_path = os.path.join("static", "captures", filename)
@@ -333,6 +333,7 @@ if not any(u['email'] == "admin@iot.com" for u in users):
 if __name__ == '__main__':
     print("🚀 Server running port 5000")
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+
 
 
 
