@@ -13,32 +13,30 @@
         /* === CSS CƠ BẢN === */
         body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; color: #333; overflow-x: hidden; }
         
-        /* HEADER: Thêm position relative để canh giữa cái Alert */
-        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
-        
+        /* HEADER */
+        .header { background: #fff; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header h1 { margin: 0; font-size: 24px; color: #009879; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
         .header i.logo { font-size: 28px; color: #009879; }
         
-        /* CSS CHO HEADER ALERT (NẰM GIỮA) */
+        /* CẢNH BÁO HEADER (GHIM CỨNG Ở GIỮA) */
         #header-alert {
             position: absolute;
             left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            transform: translate(-50%, -50%);
             display: none; /* Mặc định ẩn */
             color: #c0392b;
             font-weight: bold;
-            font-size: 1.3em;
+            font-size: 1.4em;
             align-items: center;
             gap: 10px;
             animation: blink 1s infinite;
+            white-space: nowrap;
             background: rgba(255, 255, 255, 0.9);
             padding: 5px 15px;
-            border-radius: 20px;
-            border: 2px solid #c0392b;
-            z-index: 1001;
+            border-radius: 8px;
         }
-
         @keyframes blink { 50% { opacity: 0.5; } }
         
         .toolbar { background: #2c3e50; color: white; padding: 10px 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
